@@ -1,0 +1,20 @@
+{
+  "settings": {
+    "version": "2",
+    "engine": "postgresql"
+  },
+  "catalog": {
+    "schemas": [
+      {
+        "name": "public",
+        "tables": [
+          {
+            "rel": {
+              "name": "authors"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

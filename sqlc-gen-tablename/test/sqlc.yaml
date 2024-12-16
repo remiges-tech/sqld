@@ -1,0 +1,18 @@
+version: "2"
+plugins:
+  - name: tablename
+    process:
+      cmd: ../sqlc-gen-tablename
+sql:
+  - schema: schema.sql
+    queries: query.sql
+    engine: postgresql
+    gen:
+      go:
+        package: db
+        out: db
+    codegen:
+      - plugin: tablename
+        out: db
+        options:
+          package: db

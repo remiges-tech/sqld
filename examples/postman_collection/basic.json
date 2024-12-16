@@ -1,0 +1,226 @@
+{
+  "info": {
+    "_postman_id": "c8f23e9d-5b4c-4f3a-8e3c-9f9e9d8b4f5b",
+    "name": "SQLD Query Examples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Valid Queries",
+      "item": [
+        {
+          "name": "Employee Query - Basic Select",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Employee Query - With Where Clause",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": {\n    \"department\": \"Engineering\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Employee Query - With Order By",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"salary\", \"department\"],\n  \"order_by\": [\n    {\"field\": \"salary\", \"desc\": true}\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validation Tests",
+      "item": [
+        {
+          "name": "Empty Select Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": []\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Select Field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"invalid_field\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Where Field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\"],\n  \"where\": {\n    \"invalid_field\": \"value\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Invalid Order By Field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\"],\n  \"order_by\": [\n    {\"field\": \"invalid_field\", \"desc\": true}\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Negative Limit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\"],\n  \"limit\": -1\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Negative Offset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\"],\n  \"offset\": -1\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

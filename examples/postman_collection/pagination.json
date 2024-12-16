@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "b8f23e9d-5b4c-4f3a-8e3c-9f9e9d8b4f5a",
+    "name": "SQLD Pagination Examples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Valid Pagination Queries",
+      "item": [
+        {
+          "name": "Basic Pagination",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": {\n    \"is_active\": true\n  },\n  \"order_by\": [\n    {\"field\": \"last_name\", \"desc\": false},\n    {\"field\": \"first_name\", \"desc\": false}\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/paginated",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "paginated"]
+            }
+          }
+        },
+        {
+          "name": "Second Page",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": {\n    \"is_active\": true\n  },\n  \"order_by\": [\n    {\"field\": \"last_name\", \"desc\": false}\n  ],\n  \"pagination\": {\n    \"page\": 2,\n    \"page_size\": 10\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/paginated",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "paginated"]
+            }
+          }
+        },
+        {
+          "name": "Small Page Size",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"salary\", \"position\"],\n  \"where\": {\n    \"department\": \"Engineering\"\n  },\n  \"order_by\": [\n    {\"field\": \"salary\", \"desc\": true}\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/paginated",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "paginated"]
+            }
+          }
+        },
+        {
+          "name": "Zero Values (Will be Normalized)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"department\"],\n  \"pagination\": {\n    \"page\": 0,\n    \"page_size\": 0\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/paginated",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "paginated"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validation Tests",
+      "item": [
+        {
+          "name": "Invalid Field with Pagination",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"invalid_field\"],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/paginated",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "paginated"]
+            }
+          }
+        },
+        {
+          "name": "Empty Select with Pagination",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/paginated",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "paginated"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

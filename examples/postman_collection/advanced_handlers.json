@@ -1,0 +1,149 @@
+{
+  "info": {
+    "_postman_id": "sqld-advanced-handlers",
+    "name": "SQLD Advanced Handlers",
+    "description": "Collection for testing SQLD advanced handlers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Advanced Query",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/employees/advanced",
+          "host": ["{{base_url}}"],
+          "path": ["api", "employees", "advanced"]
+        },
+        "description": "Query employees with department and salary range filters"
+      }
+    },
+    {
+      "name": "Advanced SQLC Query",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/employees/advanced-sqlc",
+          "host": ["{{base_url}}"],
+          "path": ["api", "employees", "advanced-sqlc"]
+        },
+        "description": "Query employees using SQLC with department and salary range filters"
+      }
+    },
+    {
+      "name": "Advanced SQLC Simple",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/employees/advanced-sqlc-simple",
+          "host": ["{{base_url}}"],
+          "path": ["api", "employees", "advanced-sqlc-simple"]
+        },
+        "description": "Simple SQLC query with fewer return fields"
+      }
+    },
+    {
+      "name": "Advanced SQLC Joins",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/employees/advanced-sqlc-joins",
+          "host": ["{{base_url}}"],
+          "path": ["api", "employees", "advanced-sqlc-joins"]
+        },
+        "description": "Complex query with joins and aliases"
+      }
+    },
+    {
+      "name": "Advanced SQLC Dynamic",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"fields\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n    \"filters\": {\n        \"department\": \"Engineering\",\n        \"min_salary\": 50000,\n        \"max_salary\": 150000\n    }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/employees/advanced-sqlc-dynamic",
+          "host": ["{{base_url}}"],
+          "path": ["api", "employees", "advanced-sqlc-dynamic"]
+        },
+        "description": "Dynamic query building with field selection"
+      }
+    },
+    {
+      "name": "Advanced SQLC Dynamic Paginated",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"fields\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n    \"filters\": {\n        \"department\": \"Engineering\",\n        \"min_salary\": 50000,\n        \"max_salary\": 150000\n    },\n    \"pagination\": {\n        \"limit\": 10,\n        \"offset\": 0\n    },\n    \"order_by\": [\n        {\n            \"field\": \"dept\",\n            \"desc\": true\n        }\n    ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/employees/advanced-sqlc-dynamic-paginated",
+          "host": ["{{base_url}}"],
+          "path": ["api", "employees", "advanced-sqlc-dynamic-paginated"]
+        },
+        "description": "Dynamic query building with pagination and ordering"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}
