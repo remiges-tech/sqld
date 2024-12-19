@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/remiges-remiges/sqld"
-	"github.com/remiges-remiges/sqld/examples/db/sqlc-gen"
+	"github.com/remiges-tech/sqld"
+	"github.com/remiges-tech/sqld/examples/db/sqlc-gen"
 )
 
 // AdvancedQueryParams represents parameters for advanced employee queries
