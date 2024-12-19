@@ -19,6 +19,10 @@ type AdvancedQueryParams struct {
 	MaxSalary  float64 `db:"max_salary" json:"max_salary"`
 }
 
+func (AdvancedQueryParams) TableName() string {
+	return "query_params"
+}
+
 // DynamicQueryParams represents the parameters for dynamic query building
 type DynamicQueryParams struct {
 	Fields  []string `json:"fields"` // Fields to select
@@ -27,6 +31,10 @@ type DynamicQueryParams struct {
 		MinSalary  *float64 `json:"min_salary,omitempty"`
 		MaxSalary  *float64 `json:"max_salary,omitempty"`
 	} `json:"filters"`
+}
+
+func (DynamicQueryParams) TableName() string {
+	return "dynamic_query_params"
 }
 
 // PaginatedDynamicQueryParams extends DynamicQueryParams with pagination and ordering
@@ -47,10 +55,26 @@ type PaginatedDynamicQueryParams struct {
 	} `json:"order_by,omitempty"`
 }
 
+func (PaginatedDynamicQueryParams) TableName() string {
+	return "paginated_dynamic_query_params"
+}
+
 // AdvancedQueryHandler demonstrates using multiple WHERE clauses
 func (s *Server) AdvancedQueryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Register parameter type if not already registered
+	if err := sqld.Register[AdvancedQueryParams](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Register result type if not already registered
+	if err := sqld.Register[EmployeeRow](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -104,6 +128,18 @@ func (s *Server) AdvancedQueryHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) AdvancedSQLCHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Register parameter type if not already registered
+	if err := sqld.Register[sqlc.GetEmployeesAdvancedParams](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Register result type if not already registered
+	if err := sqld.Register[sqlc.GetEmployeesAdvancedRow](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -169,6 +205,18 @@ func (s *Server) AdvancedSQLCHandlerSimple(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Register parameter type if not already registered
+	if err := sqld.Register[sqlc.GetEmployeesAdvancedParams](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Register result type if not already registered
+	if err := sqld.Register[sqlc.GetEmployeesAdvancedRow](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	// Use the simple params structure for request parsing
 	var requestParams AdvancedQueryParams
 	if err := json.NewDecoder(r.Body).Decode(&requestParams); err != nil {
@@ -228,6 +276,18 @@ func (s *Server) AdvancedSQLCHandlerSimple(w http.ResponseWriter, r *http.Reques
 func (s *Server) AdvancedSQLCHandlerJoins(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Register parameter type if not already registered
+	if err := sqld.Register[sqlc.GetEmployeesWithAccountsParams](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Register result type if not already registered
+	if err := sqld.Register[sqlc.GetEmployeesWithAccountsRow](); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -323,9 +383,11 @@ func (s *Server) AdvancedSQLCHandlerDynamic(w http.ResponseWriter, r *http.Reque
 
 	// Validate requested fields
 	var selectFields []string
+	validFields := make(map[string]bool)
 	for _, field := range requestParams.Fields {
 		if expr, ok := availableFields[field]; ok {
 			selectFields = append(selectFields, fmt.Sprintf("%s as %s", expr, field))
+			validFields[field] = true
 		} else {
 			http.Error(w, fmt.Sprintf("Invalid field: %s", field), http.StatusBadRequest)
 			return

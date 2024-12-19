@@ -100,6 +100,18 @@ func (Account) TableName() string {
 	return "accounts"
 }
 
+// EmployeeWithAccounts represents the result of employee-account queries
+type EmployeeWithAccounts struct {
+	EmployeeName string  `db:"first_name" json:"employee_name"`
+	Dept        string  `db:"department" json:"dept"`
+	AccountCount int64   `db:"id" json:"account_count"`
+	TotalBalance float64 `db:"salary" json:"total_balance"`
+}
+
+func (e EmployeeWithAccounts) TableName() string {
+	return "employees"
+}
+
 // AccountQueryParams represents parameters for account queries
 type AccountQueryParams struct {
 	MinBalance float64 `db:"min_balance" json:"min_balance"`
@@ -126,7 +138,7 @@ func (s *Server) DynamicQueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := sqld.Execute[Employee](r.Context(), s.db, req)
+	resp, err := sqld.Execute[EmployeeWithAccounts](r.Context(), s.db, req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -238,6 +250,10 @@ func init() {
 
 	if err := sqld.Register[EmployeeRow](); err != nil {
 		log.Fatalf("failed to register EmployeeRow model: %v", err)
+	}
+
+	if err := sqld.Register[EmployeeWithAccounts](); err != nil {
+		log.Fatalf("failed to register EmployeeWithAccounts model: %v", err)
 	}
 }
 

@@ -132,13 +132,9 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 	for i, result := range results {
 		queryResult := make(QueryResult)
 		for _, field := range req.Select {
-			if val, ok := result[field]; ok {
-				fieldMeta := metadata.Fields[field]
-				jsonName := fieldMeta.JSONName
-				if jsonName == "" {
-					jsonName = field
-				}
-				queryResult[jsonName] = val
+			fieldMeta := metadata.Fields[field]
+			if val, ok := result[fieldMeta.Name]; ok {  // Use database column name
+				queryResult[field] = val  // Use JSON name from request
 			}
 		}
 		queryResults[i] = queryResult

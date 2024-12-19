@@ -56,21 +56,21 @@ func (r *Registry) Register(model Model) error {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
-		// Use json tag for field naming
-		jsonName := field.Tag.Get("json")
-		if jsonName == "" {
-			continue // Skip fields without json tags
-		}
-
-		// Get database column name from db tag, fallback to json name if not specified
+		// Get database column name from db tag
 		dbName := field.Tag.Get("db")
 		if dbName == "" {
-			dbName = jsonName
+			continue // Skip fields without db tags
+		}
+
+		// Get JSON name from json tag
+		jsonName := field.Tag.Get("json")
+		if jsonName == "" {
+			jsonName = dbName // Use db name if json tag not specified
 		}
 
 		metadata.Fields[jsonName] = Field{
-			Name:     dbName,   // Use db tag name for database column
-			JSONName: jsonName, // Use json tag for JSON field name
+			Name:     field.Name,  // Use Go field name for reflection
+			JSONName: jsonName,    // Use json tag for JSON field name
 			Type:     field.Type,
 		}
 	}

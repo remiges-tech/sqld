@@ -104,7 +104,6 @@ type Ucc struct {
 	UpdatedAt        pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
-
 func (e Employee) TableName() string {
 	return "employees"
 }

@@ -315,7 +315,7 @@ type ExecuteRawRequest struct {
 //
 // The function supports both *sql.DB and *pgx.Conn database connections through scany's
 // sqlscan and pgxscan packages.
-func ExecuteRaw[P any, R Model](
+func ExecuteRaw[P Model, R Model](
 	ctx context.Context,
 	db interface{},
 	req ExecuteRawRequest,
@@ -331,10 +331,35 @@ func ExecuteRaw[P any, R Model](
 		return nil, fmt.Errorf("failed to extract named placeholders: %w", err)
 	}
 
-	// Validate and convert map params to arguments in correct order
-	args, err := ValidateMapParamsAgainstStructNamed[P](req.Params, queryParams)
+	// Get metadata from registry for parameter type
+	var param P
+	paramMetadata, err := defaultRegistry.GetModelMetadata(param)
 	if err != nil {
-		return nil, fmt.Errorf("parameter validation failed: %w", err)
+		return nil, fmt.Errorf("failed to get parameter metadata: %w", err)
+	}
+
+	// Validate and convert map params to arguments in correct order using metadata
+	var args []interface{}
+	for _, paramName := range queryParams {
+		value, ok := req.Params[paramName]
+		if !ok {
+			return nil, fmt.Errorf("missing parameter: %s", paramName)
+		}
+
+		// Get field info from metadata
+		field, ok := paramMetadata.Fields[paramName]
+		if !ok {
+			return nil, fmt.Errorf("parameter %s not found in struct type %T", paramName, param)
+		}
+
+		// Validate type compatibility
+		valueType := reflect.TypeOf(value)
+		if !isTypeCompatible(valueType, field.Type) {
+			return nil, fmt.Errorf("parameter %s has wrong type: got %v, want %v",
+				paramName, typeNameOrNil(valueType), typeNameOrNil(field.Type))
+		}
+
+		args = append(args, value)
 	}
 
 	// Replace named placeholders with $N placeholders
@@ -372,21 +397,35 @@ func ExecuteRaw[P any, R Model](
 
 	// Convert struct results to maps with only requested fields
 	results := make([]map[string]interface{}, len(structResults))
+	fmt.Printf("Number of results: %d\n", len(structResults))
 	for i, row := range structResults {
 		val := reflect.ValueOf(row)
 		resultMap := make(map[string]interface{})
+		fmt.Printf("Processing row %d\n", i)
 
 		// Only include fields that were specified in SelectFields
-		for jsonName, field := range metadata.Fields {
+		for _, field := range metadata.Fields {
+			fmt.Printf("Field: db=%s json=%s name=%s\n", field.Name, field.JSONName, field.Name)
 			// If SelectFields is empty, include all fields
 			// Otherwise, only include fields that were requested
-			if len(req.SelectFields) == 0 || contains(req.SelectFields, field.Name) {
+			if len(req.SelectFields) == 0 {
 				fieldVal := val.FieldByName(field.Name)
+				fmt.Printf("Field value valid: %v\n", fieldVal.IsValid())
 				if fieldVal.IsValid() {
-					resultMap[jsonName] = fieldVal.Interface()
+					resultMap[field.JSONName] = fieldVal.Interface()
+					fmt.Printf("Added value: %v\n", fieldVal.Interface())
+				}
+			} else {
+				// Check if the db name or json name is in SelectFields
+				if contains(req.SelectFields, field.Name) || contains(req.SelectFields, field.JSONName) {
+					fieldVal := val.FieldByName(field.Name)
+					if fieldVal.IsValid() {
+						resultMap[field.JSONName] = fieldVal.Interface()
+					}
 				}
 			}
 		}
+		fmt.Printf("Result map: %+v\n", resultMap)
 		results[i] = resultMap
 	}
 
