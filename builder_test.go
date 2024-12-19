@@ -20,7 +20,7 @@ func (BuilderTestModel) TableName() string {
 
 func TestBuildQuery(t *testing.T) {
 	// Register our test model
-	if err := Register(BuilderTestModel{}); err != nil {
+	if err := Register[BuilderTestModel](); err != nil {
 		t.Fatalf("Failed to register test model: %v", err)
 	}
 

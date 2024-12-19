@@ -26,7 +26,8 @@ func NewRegistry() *Registry {
 var defaultRegistry = NewRegistry()
 
 // Register adds a model's metadata to the registry
-func Register[T Model](model T) error {
+func Register[T Model]() error {
+	var model T
 	return defaultRegistry.Register(model)
 }
 

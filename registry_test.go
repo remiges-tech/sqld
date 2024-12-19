@@ -52,14 +52,13 @@ func TestNewRegistry(t *testing.T) {
 
 func TestRegistry_Register(t *testing.T) {
 	registry := NewRegistry()
-	model := TestModel{}
 
 	// Test registration
-	err := registry.Register(model)
+	err := registry.Register(TestModel{})
 	assert.NoError(t, err)
 
 	// Verify metadata was stored correctly
-	metadata, err := registry.GetModelMetadata(model)
+	metadata, err := registry.GetModelMetadata(TestModel{})
 	assert.NoError(t, err)
 	assert.Equal(t, "test_models", metadata.TableName)
 
@@ -144,8 +143,9 @@ func TestDefaultRegistry(t *testing.T) {
 	customIntType := reflect.TypeOf(CustomInt(0))
 
 	// Test Register
-	err := Register(model)
-	assert.NoError(t, err)
+	if err := Register[TestModel](); err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
 
 	// Test RegisterScanner
 	RegisterScanner(customIntType, func() sql.Scanner {
@@ -205,7 +205,9 @@ func TestRegistry_Register2(t *testing.T) {
 	model := TestModel2{}
 
 	err := registry.Register(model)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("Register() error = %v", err)
+	}
 
 	metadata, err := registry.GetModelMetadata(model)
 	assert.NoError(t, err)

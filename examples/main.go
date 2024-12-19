@@ -228,7 +228,7 @@ func init() {
 		return &EmployeeIDScanner{}
 	})
 
-	if err := sqld.Register(sqlc.Employee{}); err != nil {
+	if err := sqld.Register[sqlc.Employee](); err != nil {
 		log.Fatalf("failed to register sqlc.Employee model: %v", err)
 	}
 }
@@ -251,13 +251,13 @@ func main() {
 		log.Fatalf("failed to ping database: %v", err)
 	}
 
-	if err := sqld.Register(Employee{}); err != nil {
+	if err := sqld.Register[Employee](); err != nil {
 		log.Fatal(err)
 	}
-	if err := sqld.Register(Account{}); err != nil {
+	if err := sqld.Register[sqlc.Employee](); err != nil {
 		log.Fatal(err)
 	}
-	if err := sqld.Register(sqlc.Employee{}); err != nil {
+	if err := sqld.Register[Account](); err != nil {
 		log.Fatal(err)
 	}
 

@@ -16,8 +16,8 @@ import (
 )
 
 type QueryParams struct {
-	ID     int64  `db:"id" db_param:"id"`
-	Status string `db:"status" db_param:"status"`
+	ID     int64  `db:"id" json:"id" db_param:"id"`
+	Status string `db:"status" json:"status" db_param:"status"`
 }
 
 type TestQueryResult struct {
@@ -67,7 +67,7 @@ func (c CustomID) Value() (driver.Value, error) {
 }
 
 type TestCustomParams struct {
-	ID CustomID `db:"id"`
+	ID CustomID `db:"id" json:"id"`
 }
 
 type TestCustomResult struct {
@@ -162,7 +162,10 @@ func TestExecuteRaw(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockSetup(mock)
 
-			results, err := ExecuteRaw[QueryParams, TestQueryResult](ctx, db, tt.query, tt.params)
+			results, err := ExecuteRaw[QueryParams, TestQueryResult](ctx, db, ExecuteRawRequest{
+				Query: tt.query,
+				Params: tt.params,
+			})
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -205,7 +208,10 @@ func TestExecuteRawTyped(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Execute query
-	results, err := ExecuteRaw[QueryParams, TestQueryResult](ctx, db, query, params)
+	results, err := ExecuteRaw[QueryParams, TestQueryResult](ctx, db, ExecuteRawRequest{
+		Query: query,
+		Params: params,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)
 
@@ -244,8 +250,10 @@ func TestExecuteRawWithCustomScanner(t *testing.T) {
 	results, err := ExecuteRaw[TestCustomParams, TestCustomResult](
 		context.Background(),
 		db,
-		query,
-		params,
+		ExecuteRawRequest{
+			Query: query,
+			Params: params,
+		},
 	)
 	require.NoError(t, err)
 	require.Len(t, results, 1)
