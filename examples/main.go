@@ -223,6 +223,10 @@ type EmployeeRow struct {
 	Salary     float64 `db:"salary" json:"salary"`
 }
 
+func (EmployeeRow) TableName() string {
+	return "employees"
+}
+
 func init() {
 	sqld.RegisterScanner(reflect.TypeOf((*EmployeeID)(nil)).Elem(), func() sql.Scanner {
 		return &EmployeeIDScanner{}
@@ -230,6 +234,10 @@ func init() {
 
 	if err := sqld.Register[sqlc.Employee](); err != nil {
 		log.Fatalf("failed to register sqlc.Employee model: %v", err)
+	}
+
+	if err := sqld.Register[EmployeeRow](); err != nil {
+		log.Fatalf("failed to register EmployeeRow model: %v", err)
 	}
 }
 

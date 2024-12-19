@@ -315,7 +315,7 @@ type ExecuteRawRequest struct {
 //
 // The function supports both *sql.DB and *pgx.Conn database connections through scany's
 // sqlscan and pgxscan packages.
-func ExecuteRaw[P any, R any](
+func ExecuteRaw[P any, R Model](
 	ctx context.Context,
 	db interface{},
 	req ExecuteRawRequest,
@@ -348,10 +348,11 @@ func ExecuteRaw[P any, R any](
 		return nil, err
 	}
 
-	// Build metadata map for results (no instance needed)
-	metaMap, err := BuildMetadataMap[R]()
+	// Get metadata from registry for result type
+	var result R
+	metadata, err := getModelMetadata(result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build metadata map: %w", err)
+		return nil, fmt.Errorf("failed to get model metadata: %w", err)
 	}
 
 	// Execute query and scan into slice of structs first to handle custom types
@@ -373,19 +374,16 @@ func ExecuteRaw[P any, R any](
 	results := make([]map[string]interface{}, len(structResults))
 	for i, row := range structResults {
 		val := reflect.ValueOf(row)
-		typ := val.Type()
 		resultMap := make(map[string]interface{})
 
 		// Only include fields that were specified in SelectFields
-		for dbFieldName, info := range metaMap {
+		for jsonName, field := range metadata.Fields {
 			// If SelectFields is empty, include all fields
 			// Otherwise, only include fields that were requested
-			if len(req.SelectFields) == 0 || contains(req.SelectFields, dbFieldName) {
-				if field, ok := typ.FieldByName(info.fieldName); ok {
-					fieldVal := val.FieldByName(field.Name)
-					if fieldVal.IsValid() {
-						resultMap[info.jsonKey] = fieldVal.Interface()
-					}
+			if len(req.SelectFields) == 0 || contains(req.SelectFields, field.Name) {
+				fieldVal := val.FieldByName(field.Name)
+				if fieldVal.IsValid() {
+					resultMap[jsonName] = fieldVal.Interface()
 				}
 			}
 		}
