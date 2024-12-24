@@ -59,18 +59,18 @@ func (r *Registry) Register(model Model) error {
 		// Get database column name from db tag
 		dbName := field.Tag.Get("db")
 		if dbName == "" {
-			continue // Skip fields without db tags
+			return fmt.Errorf("field %q missing required db tag", field.Name)
 		}
 
 		// Get JSON name from json tag
 		jsonName := field.Tag.Get("json")
 		if jsonName == "" {
-			jsonName = dbName // Use db name if json tag not specified
+			return fmt.Errorf("field %q missing required json tag", field.Name)
 		}
 
 		metadata.Fields[jsonName] = Field{
-			Name:     field.Name,  // Use Go field name for reflection
-			JSONName: jsonName,    // Use json tag for JSON field name
+			Name:     dbName,   // Store DB column name
+			JSONName: jsonName, // Store JSON field name
 			Type:     field.Type,
 		}
 	}
