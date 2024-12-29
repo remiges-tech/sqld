@@ -5,8 +5,54 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type EmployeeStatus string
+
+const (
+	EmployeeStatusActive     EmployeeStatus = "active"
+	EmployeeStatusOnLeave    EmployeeStatus = "on_leave"
+	EmployeeStatusTerminated EmployeeStatus = "terminated"
+)
+
+func (e *EmployeeStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EmployeeStatus(s)
+	case string:
+		*e = EmployeeStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EmployeeStatus: %T", src)
+	}
+	return nil
+}
+
+type NullEmployeeStatus struct {
+	EmployeeStatus EmployeeStatus `json:"employee_status"`
+	Valid          bool           `json:"valid"` // Valid is true if EmployeeStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEmployeeStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.EmployeeStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EmployeeStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEmployeeStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EmployeeStatus), nil
+}
 
 type Account struct {
 	ID            int64              `db:"id" json:"id"`
@@ -40,6 +86,7 @@ type Employee struct {
 	Department pgtype.Text        `db:"department" json:"department"`
 	Position   pgtype.Text        `db:"position" json:"position"`
 	IsActive   pgtype.Bool        `db:"is_active" json:"is_active"`
+	Status     pgtype.Text        `db:"status" json:"status"`
 	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt  pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }

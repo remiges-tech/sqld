@@ -10,6 +10,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/georgysavva/scany/v2/sqlscan"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Querier interface abstracts database operations
@@ -95,6 +96,8 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 			err = sqlscan.Get(ctx, db, &totalItems, countQuery, countArgs...)
 		case *pgx.Conn:
 			err = pgxscan.Get(ctx, db, &totalItems, countQuery, countArgs...)
+		case *pgxpool.Pool:
+			err = pgxscan.Get(ctx, db, &totalItems, countQuery, countArgs...)
 		default:
 			return QueryResponse[T]{}, fmt.Errorf("unsupported database type: %T", db)
 		}
@@ -118,6 +121,8 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 	case *sql.DB:
 		err = sqlscan.Select(ctx, db, &results, query, args...)
 	case *pgx.Conn:
+		err = pgxscan.Select(ctx, db, &results, query, args...)
+	case *pgxpool.Pool:
 		err = pgxscan.Select(ctx, db, &results, query, args...)
 	default:
 		return QueryResponse[T]{}, fmt.Errorf("unsupported database type: %T", db)

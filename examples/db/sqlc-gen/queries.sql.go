@@ -12,7 +12,7 @@ import (
 )
 
 const getEmployee = `-- name: GetEmployee :one
-SELECT id, first_name, last_name, email, phone, hire_date, salary, department, position, is_active, created_at, updated_at FROM employees WHERE id = $1
+SELECT id, first_name, last_name, email, phone, hire_date, salary, department, position, is_active, created_at, updated_at, status FROM employees WHERE id = $1
 `
 
 func (q *Queries) GetEmployee(ctx context.Context, id int64) (Employee, error) {
@@ -31,6 +31,7 @@ func (q *Queries) GetEmployee(ctx context.Context, id int64) (Employee, error) {
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
 	)
 	return i, err
 }

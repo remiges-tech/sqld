@@ -15,6 +15,7 @@ import (
 	"github.com/remiges-tech/sqld/examples/db/sqlc-gen"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // EmployeeIDScanner handles scanning for EmployeeID type
@@ -103,7 +104,7 @@ func (Account) TableName() string {
 // EmployeeWithAccounts represents the result of employee-account queries
 type EmployeeWithAccounts struct {
 	EmployeeName string  `db:"first_name" json:"employee_name"`
-	Dept        string  `db:"department" json:"dept"`
+	Dept         string  `db:"department" json:"dept"`
 	AccountCount int64   `db:"id" json:"account_count"`
 	TotalBalance float64 `db:"salary" json:"total_balance"`
 }
@@ -118,10 +119,10 @@ type AccountQueryParams struct {
 }
 
 type Server struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
-func NewServer(db *pgx.Conn) *Server {
+func NewServer(db *pgxpool.Pool) *Server {
 	return &Server{db: db}
 }
 
@@ -260,18 +261,23 @@ func init() {
 func main() {
 	ctx := context.Background()
 
-	config, err := pgx.ParseConfig("postgres://alyatest:alyatest@localhost:5432/alyatest?sslmode=disable")
+	poolConfig, err := pgxpool.ParseConfig("postgres://alyatest:alyatest@localhost:5432/alyatest?sslmode=disable")
 	if err != nil {
-		log.Fatalf("failed to parse config: %v", err)
+		log.Fatal("Unable to parse pool config")
 	}
 
-	conn, err := pgx.ConnectConfig(ctx, config)
+	// Add AfterConnect hook to register enums
+	poolConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		return sqld.AutoRegisterEnums(ctx, conn)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-	defer conn.Close(ctx)
+	defer pool.Close()
 
-	if err := conn.Ping(ctx); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		log.Fatalf("failed to ping database: %v", err)
 	}
 
@@ -285,7 +291,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server := NewServer(conn)
+	server := NewServer(pool)
 
 	// Basic CRUD endpoints
 	http.HandleFunc("/api/dynamic", server.DynamicQueryHandler)       // Dynamic field selection
