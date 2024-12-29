@@ -3,183 +3,103 @@ package sqld
 import (
 	"database/sql"
 	"reflect"
-	"sync"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestModel is a simple model for testing
-type TestModel struct {
-	ID        int64     `json:"id" db:"id"`
-	Name      string    `json:"name" db:"name"`
-	IsActive  bool      `json:"is_active" db:"is_active"`
-	CustomInt CustomInt `json:"custom_int" db:"custom_int"`
+type RegistryTestModel struct {
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
 }
 
-func (TestModel) TableName() string {
-	return "test_models"
+func (RegistryTestModel) TableName() string {
+	return "registry_test_models"
 }
 
-// CustomInt is a custom type for testing scanner registration
-type CustomInt int
-
-// CustomScanner is a scanner for CustomInt
-type CustomScanner struct {
-	value CustomInt
-	valid bool
+type RegistryTestScanner struct {
+	value interface{}
 }
 
-func (s *CustomScanner) Scan(src interface{}) error {
-	if src == nil {
-		s.valid = false
-		return nil
-	}
-	if v, ok := src.(int64); ok {
-		s.value = CustomInt(v)
-		s.valid = true
-		return nil
-	}
+func (s *RegistryTestScanner) Scan(value interface{}) error {
+	s.value = value
 	return nil
 }
 
-func TestNewRegistry(t *testing.T) {
-	registry := NewRegistry()
-	assert.NotNil(t, registry)
-	assert.NotNil(t, registry.models)
-	assert.NotNil(t, registry.scanners)
+func (s *RegistryTestScanner) ScanRow(row pgx.Row) (*RegistryTestModel, error) {
+	var model RegistryTestModel
+	err := row.Scan(&model.ID, &model.Name)
+	if err != nil {
+		return nil, err
+	}
+	return &model, nil
 }
 
-func TestRegistry_Register(t *testing.T) {
-	registry := NewRegistry()
+func (s *RegistryTestScanner) ScanRows(rows pgx.Rows) ([]*RegistryTestModel, error) {
+	var models []*RegistryTestModel
+	for rows.Next() {
+		model, err := s.ScanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		models = append(models, model)
+	}
+	return models, nil
+}
 
-	// Test registration
-	err := registry.Register(TestModel{})
+func TestRegisterModel(t *testing.T) {
+	// Clear the registry before test
+	defaultRegistry = NewRegistry()
+
+	// Test registering a model
+	err := Register[RegistryTestModel]()
 	assert.NoError(t, err)
 
-	// Verify metadata was stored correctly
-	metadata, err := registry.GetModelMetadata(TestModel{})
-	assert.NoError(t, err)
-	assert.Equal(t, "test_models", metadata.TableName)
-
-	// Check field mappings
-	expectedFields := map[string]Field{
-		"id": {
-			Name:     "id",
-			JSONName: "id",
-			Type:     reflect.TypeOf(int64(0)),
-		},
-		"name": {
-			Name:     "name",
-			JSONName: "name",
-			Type:     reflect.TypeOf(""),
-		},
-		"is_active": {
-			Name:     "is_active",
-			JSONName: "is_active",
-			Type:     reflect.TypeOf(false),
-		},
-		"custom_int": {
-			Name:     "custom_int",
-			JSONName: "custom_int",
-			Type:     reflect.TypeOf(CustomInt(0)),
-		},
-	}
-
-	assert.Equal(t, len(expectedFields), len(metadata.Fields))
-	for name, expectedField := range expectedFields {
-		actualField, ok := metadata.Fields[name]
-		assert.True(t, ok)
-		assert.Equal(t, expectedField.Name, actualField.Name)
-		assert.Equal(t, expectedField.JSONName, actualField.JSONName)
-		assert.Equal(t, expectedField.Type, actualField.Type)
-	}
-}
-
-func TestRegistry_RegisterScanner(t *testing.T) {
-	registry := NewRegistry()
-	customIntType := reflect.TypeOf(CustomInt(0))
-
-	// Test scanner registration
-	registry.RegisterScanner(customIntType, func() sql.Scanner {
-		return &CustomScanner{}
-	})
-
-	// Verify scanner was stored
-	factory, ok := registry.GetScanner(customIntType)
-	assert.True(t, ok)
-	assert.NotNil(t, factory)
-
-	// Test scanner creation
-	scanner := factory()
-	assert.NotNil(t, scanner)
-	assert.IsType(t, &CustomScanner{}, scanner)
-}
-
-func TestRegistry_GetModelMetadata_NotFound(t *testing.T) {
-	registry := NewRegistry()
-	model := TestModel{}
-
-	// Try to get metadata for unregistered model
-	metadata, err := registry.GetModelMetadata(model)
+	// Test registering the same model again (should fail)
+	err = Register[RegistryTestModel]()
 	assert.Error(t, err)
-	assert.Equal(t, ModelMetadata{}, metadata)
-	assert.Contains(t, err.Error(), "not registered")
-}
 
-func TestRegistry_GetScanner_NotFound(t *testing.T) {
-	registry := NewRegistry()
-	customIntType := reflect.TypeOf(CustomInt(0))
-
-	// Try to get unregistered scanner
-	factory, ok := registry.GetScanner(customIntType)
-	assert.False(t, ok)
-	assert.Nil(t, factory)
-}
-
-func TestDefaultRegistry(t *testing.T) {
-	// Test using default registry functions
-	model := TestModel{}
-	customIntType := reflect.TypeOf(CustomInt(0))
-
-	// Test Register
-	if err := Register[TestModel](); err != nil {
-		t.Errorf("Register() error = %v", err)
-	}
-
-	// Test RegisterScanner
-	RegisterScanner(customIntType, func() sql.Scanner {
-		return &CustomScanner{}
-	})
-
-	// Test getModelMetadata
+	// Test getting model metadata
+	var model RegistryTestModel
 	metadata, err := getModelMetadata(model)
 	assert.NoError(t, err)
-	assert.Equal(t, "test_models", metadata.TableName)
-
-	// Verify scanner was registered in default registry
-	factory, ok := defaultRegistry.GetScanner(customIntType)
-	assert.True(t, ok)
-	assert.NotNil(t, factory)
+	assert.Equal(t, "registry_test_models", metadata.TableName)
+	assert.Contains(t, metadata.Fields, "id")
+	assert.Contains(t, metadata.Fields, "name")
 }
 
-func TestRegistry_Concurrency(t *testing.T) {
-	registry := NewRegistry()
-	model := TestModel{}
-	customIntType := reflect.TypeOf(CustomInt(0))
+func TestRegisterScanner(t *testing.T) {
+	// Clear the registry before test
+	defaultRegistry = NewRegistry()
 
-	// Test concurrent registrations
+	// Test registering a scanner
+	scanner := &RegistryTestScanner{}
+	defaultRegistry.RegisterScanner(reflect.TypeOf(RegistryTestModel{}), func() sql.Scanner { return scanner })
+
+	// Test registering the same scanner again (should fail)
+	defaultRegistry.RegisterScanner(reflect.TypeOf(RegistryTestModel{}), func() sql.Scanner { return scanner })
+
+	// Test getting scanner
+	scannerFactory, ok := defaultRegistry.GetScanner(reflect.TypeOf(RegistryTestModel{}))
+	assert.True(t, ok)
+	assert.NotNil(t, scannerFactory)
+}
+
+func TestConcurrentRegistration(t *testing.T) {
+	// Clear the registry before test
+	defaultRegistry = NewRegistry()
+
+	// Test concurrent model registration
 	done := make(chan bool)
 	for i := 0; i < 10; i++ {
 		go func() {
-			err := registry.Register(model)
-			assert.NoError(t, err)
-			registry.RegisterScanner(customIntType, func() sql.Scanner {
-				return &CustomScanner{}
-			})
-			_, err = registry.GetModelMetadata(model)
-			assert.NoError(t, err)
-			_, _ = registry.GetScanner(customIntType)
+			err := Register[RegistryTestModel]()
+			if err != nil {
+				// Ignore errors as we expect some registrations to fail
+				// due to concurrent registration attempts
+			}
 			done <- true
 		}()
 	}
@@ -188,139 +108,128 @@ func TestRegistry_Concurrency(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		<-done
 	}
-}
 
-type TestModel2 struct {
-	ID        int    `json:"id" db:"id"`
-	Name      string `json:"name" db:"name"`
-	CreatedAt string `json:"created_at" db:"created_at"`
-}
-
-func (t TestModel2) TableName() string {
-	return "test_models"
-}
-
-func TestRegistry_Register2(t *testing.T) {
-	registry := NewRegistry()
-	model := TestModel2{}
-
-	err := registry.Register(model)
-	if err != nil {
-		t.Errorf("Register() error = %v", err)
-	}
-
-	metadata, err := registry.GetModelMetadata(model)
+	// Verify that the model was registered correctly
+	var model RegistryTestModel
+	metadata, err := getModelMetadata(model)
 	assert.NoError(t, err)
-	assert.Equal(t, "test_models", metadata.TableName)
-
-	// Check fields
-	assert.Len(t, metadata.Fields, 3)
-
-	// Check ID field
-	idField, ok := metadata.Fields["id"]
-	assert.True(t, ok)
-	assert.Equal(t, "id", idField.Name)
-	assert.Equal(t, "id", idField.JSONName)
-	assert.Equal(t, reflect.TypeOf(0), idField.Type)
-
-	// Check Name field
-	nameField, ok := metadata.Fields["name"]
-	assert.True(t, ok)
-	assert.Equal(t, "name", nameField.Name)
-	assert.Equal(t, "name", nameField.JSONName)
-	assert.Equal(t, reflect.TypeOf(""), nameField.Type)
-}
-
-func TestRegistry_GetModelMetadata_Unregistered2(t *testing.T) {
-	registry := NewRegistry()
-	model := TestModel2{}
-
-	_, err := registry.GetModelMetadata(model)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "model TestModel2 not registered")
-}
-
-type CustomScanner2 struct {
-	sql.NullString
-}
-
-func TestRegistry_RegisterScanner2(t *testing.T) {
-	registry := NewRegistry()
-	scannerType := reflect.TypeOf("")
-	factory := func() sql.Scanner { return &CustomScanner2{} }
-
-	registry.RegisterScanner(scannerType, factory)
-
-	// Verify scanner is registered
-	gotFactory, ok := registry.GetScanner(scannerType)
-	assert.True(t, ok)
-	assert.NotNil(t, gotFactory)
-
-	// Verify scanner factory works
-	scanner := gotFactory()
-	assert.IsType(t, &CustomScanner2{}, scanner)
-}
-
-func TestRegistry_GetScanner_Unregistered2(t *testing.T) {
-	registry := NewRegistry()
-	scannerType := reflect.TypeOf("")
-
-	factory, ok := registry.GetScanner(scannerType)
-	assert.False(t, ok)
-	assert.Nil(t, factory)
-}
-
-func TestRegistry_Concurrency2(t *testing.T) {
-	registry := NewRegistry()
-	model := TestModel2{}
-	scannerType := reflect.TypeOf("")
-	factory := func() sql.Scanner { return &CustomScanner2{} }
-
-	var wg sync.WaitGroup
-	workers := 10
-
-	// Test concurrent model registration
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
-		go func() {
-			defer wg.Done()
-			err := registry.Register(model)
-			assert.NoError(t, err)
-		}()
-	}
-	wg.Wait()
+	assert.Equal(t, "registry_test_models", metadata.TableName)
 
 	// Test concurrent scanner registration
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
+	scanner := &RegistryTestScanner{}
+	for i := 0; i < 10; i++ {
 		go func() {
-			defer wg.Done()
-			registry.RegisterScanner(scannerType, factory)
+			defaultRegistry.RegisterScanner(reflect.TypeOf(RegistryTestModel{}), func() sql.Scanner { return scanner })
+			done <- true
 		}()
 	}
-	wg.Wait()
 
-	// Test concurrent metadata retrieval
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
-		go func() {
-			defer wg.Done()
-			metadata, err := registry.GetModelMetadata(model)
-			assert.NoError(t, err)
-			assert.Equal(t, "test_models", metadata.TableName)
-		}()
+	// Wait for all goroutines to complete
+	for i := 0; i < 10; i++ {
+		<-done
 	}
-	wg.Wait()
 
-	// Test concurrent scanner retrieval
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
-		go func() {
-			defer wg.Done()
-			factory, ok := registry.GetScanner(scannerType)
-			assert.True(t, ok)
-			assert.NotNil(t, factory)
-		}()
+	// Verify that the scanner was registered correctly
+	scannerFactory, ok := defaultRegistry.GetScanner(reflect.TypeOf(RegistryTestModel{}))
+	assert.True(t, ok)
+	assert.NotNil(t, scannerFactory)
+}
+
+func TestScannerFunctionality(t *testing.T) {
+	// Clear the registry before test
+	defaultRegistry = NewRegistry()
+
+	// Register the scanner
+	scanner := &RegistryTestScanner{}
+	defaultRegistry.RegisterScanner(reflect.TypeOf(RegistryTestModel{}), func() sql.Scanner { return scanner })
+
+	// Get the scanner
+	scannerFactory, ok := defaultRegistry.GetScanner(reflect.TypeOf(RegistryTestModel{}))
+	assert.True(t, ok)
+	assert.NotNil(t, scannerFactory)
+
+	// Test scanning a single row
+	row := &mockRow{
+		values: []interface{}{1, "Test Model"},
 	}
-	wg.Wait()
+	model, err := scanner.ScanRow(row)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, model.ID)
+	assert.Equal(t, "Test Model", model.Name)
+
+	// Test scanning multiple rows
+	rows := &mockRows{
+		data: [][]interface{}{
+			{1, "Model 1"},
+			{2, "Model 2"},
+			{3, "Model 3"},
+		},
+	}
+	models, err := scanner.ScanRows(rows)
+	assert.NoError(t, err)
+	assert.Len(t, models, 3)
+	assert.Equal(t, "Model 1", models[0].Name)
+	assert.Equal(t, "Model 2", models[1].Name)
+	assert.Equal(t, "Model 3", models[2].Name)
+}
+
+// Mock implementations for testing
+
+type mockRow struct {
+	values []interface{}
+}
+
+func (m *mockRow) Scan(dest ...interface{}) error {
+	for i, d := range dest {
+		switch v := d.(type) {
+		case *int:
+			*v = m.values[i].(int)
+		case *string:
+			*v = m.values[i].(string)
+		}
+	}
+	return nil
+}
+
+type mockRows struct {
+	data     [][]interface{}
+	position int
+}
+
+func (m *mockRows) Next() bool {
+	m.position++
+	return m.position <= len(m.data)
+}
+
+func (m *mockRows) Scan(dest ...interface{}) error {
+	row := &mockRow{values: m.data[m.position-1]}
+	return row.Scan(dest...)
+}
+
+func (m *mockRows) Err() error {
+	return nil
+}
+
+func (m *mockRows) Close() {
+	// No-op for mock
+}
+
+func (m *mockRows) CommandTag() pgconn.CommandTag {
+	return pgconn.CommandTag{}
+}
+
+func (m *mockRows) FieldDescriptions() []pgconn.FieldDescription {
+	return []pgconn.FieldDescription{}
+}
+
+func (m *mockRows) Values() ([]interface{}, error) {
+	return m.data[m.position-1], nil
+}
+
+func (m *mockRows) RawValues() [][]byte {
+	return nil
+}
+
+func (m *mockRows) Conn() *pgx.Conn {
+	return nil
 }

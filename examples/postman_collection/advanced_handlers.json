@@ -18,7 +18,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+          "raw": "{\n  \"select\": [\"id\", \"first_name\", \"last_name\", \"department\", \"salary\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \">=\",\n      \"value\": 50000\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \"<=\",\n      \"value\": 150000\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/employees/advanced",
@@ -40,7 +40,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+          "raw": "{\n  \"select\": [\"id\", \"first_name\", \"last_name\", \"department\", \"salary\", \"position\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \">=\",\n      \"value\": 50000\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \"<=\",\n      \"value\": 150000\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/employees/advanced-sqlc",
@@ -62,7 +62,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+          "raw": "{\n  \"select\": [\"id\", \"first_name\", \"last_name\", \"department\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \">=\",\n      \"value\": 50000\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \"<=\",\n      \"value\": 150000\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/employees/advanced-sqlc-simple",
@@ -84,7 +84,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"department\": \"Engineering\",\n    \"min_salary\": 50000,\n    \"max_salary\": 150000\n}"
+          "raw": "{\n  \"select\": [\"id\", \"first_name\", \"last_name\", \"department\", \"salary\", \"position\", \"manager_name\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \">=\",\n      \"value\": 50000\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \"<=\",\n      \"value\": 150000\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/employees/advanced-sqlc-joins",
@@ -106,14 +106,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"fields\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n    \"filters\": {\n        \"department\": \"Engineering\",\n        \"min_salary\": 50000,\n        \"max_salary\": 150000\n    }\n}"
+          "raw": "{\n  \"select\": [\"id\", \"first_name\", \"last_name\", \"department\", \"salary\", \"position\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \">=\",\n      \"value\": 50000\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \"<=\",\n      \"value\": 150000\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/employees/advanced-sqlc-dynamic",
           "host": ["{{base_url}}"],
           "path": ["api", "employees", "advanced-sqlc-dynamic"]
         },
-        "description": "Dynamic query building with field selection"
+        "description": "Dynamic SQLC query with flexible conditions"
       }
     },
     {
@@ -128,14 +128,14 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"fields\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n    \"filters\": {\n        \"department\": \"Engineering\",\n        \"min_salary\": 50000,\n        \"max_salary\": 150000\n    },\n    \"pagination\": {\n        \"limit\": 10,\n        \"offset\": 0\n    },\n    \"order_by\": [\n        {\n            \"field\": \"dept\",\n            \"desc\": true\n        }\n    ]\n}"
+          "raw": "{\n  \"select\": [\"id\", \"first_name\", \"last_name\", \"department\", \"salary\", \"position\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \">=\",\n      \"value\": 50000\n    },\n    {\n      \"field\": \"salary\",\n      \"operator\": \"<=\",\n      \"value\": 150000\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/employees/advanced-sqlc-dynamic-paginated",
           "host": ["{{base_url}}"],
           "path": ["api", "employees", "advanced-sqlc-dynamic-paginated"]
         },
-        "description": "Dynamic query building with pagination and ordering"
+        "description": "Dynamic SQLC query with pagination"
       }
     }
   ],

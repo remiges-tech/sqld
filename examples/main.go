@@ -185,9 +185,17 @@ func (s *Server) CustomFilterHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req sqld.QueryRequest
 	req.Select = []string{"id", "account_number", "balance", "status"}
-	req.Where = map[string]interface{}{
-		"status":  "active",
-		"balance": 1000.00,
+	req.Where = []sqld.Condition{
+		{
+			Field:    "status",
+			Operator: sqld.OpEqual,
+			Value:    "active",
+		},
+		{
+			Field:    "balance",
+			Operator: sqld.OpGreaterThanOrEqual,
+			Value:    1000.00,
+		},
 	}
 
 	resp, err := sqld.Execute[Account](r.Context(), s.db, req)
@@ -238,6 +246,104 @@ type EmployeeRow struct {
 
 func (EmployeeRow) TableName() string {
 	return "employees"
+}
+
+var (
+	// Example 1: Basic equality and comparison
+	basicQuery = sqld.QueryRequest{
+		Select: []string{"id", "first_name", "salary"},
+		Where: []sqld.Condition{
+			{
+				Field:    "department",
+				Operator: sqld.OpEqual,
+				Value:    "Engineering",
+			},
+			{
+				Field:    "salary",
+				Operator: sqld.OpGreaterThan,
+				Value:    75000.0,
+			},
+		},
+	}
+
+	// Example 2: Pattern matching and NULL checks
+	patternQuery = sqld.QueryRequest{
+		Select: []string{"id", "email", "phone"},
+		Where: []sqld.Condition{
+			{
+				Field:    "email",
+				Operator: sqld.OpLike,
+				Value:    "%@company.com",
+			},
+			{
+				Field:    "phone",
+				Operator: sqld.OpIsNotNull,
+				Value:    nil,
+			},
+		},
+	}
+
+	// Example 3: IN clause and range comparison
+	rangeQuery = sqld.QueryRequest{
+		Select: []string{"id", "department", "position"},
+		Where: []sqld.Condition{
+			{
+				Field:    "department",
+				Operator: sqld.OpIn,
+				Value:    []string{"Engineering", "Sales", "Marketing"},
+			},
+			{
+				Field:    "salary",
+				Operator: sqld.OpGreaterThanOrEqual,
+				Value:    50000.0,
+			},
+			{
+				Field:    "salary",
+				Operator: sqld.OpLessThanOrEqual,
+				Value:    100000.0,
+			},
+		},
+	}
+)
+
+func (s *Server) ExampleQueriesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Execute each example query
+	basicResp, err := sqld.Execute[Employee](r.Context(), s.db, basicQuery)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Basic query error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	patternResp, err := sqld.Execute[Employee](r.Context(), s.db, patternQuery)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Pattern query error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	rangeResp, err := sqld.Execute[Employee](r.Context(), s.db, rangeQuery)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Range query error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Combine all results
+	response := struct {
+		BasicQuery   interface{} `json:"basic_query"`
+		PatternQuery interface{} `json:"pattern_query"`
+		RangeQuery   interface{} `json:"range_query"`
+	}{
+		BasicQuery:   basicResp,
+		PatternQuery: patternResp,
+		RangeQuery:   rangeResp,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func init() {
@@ -306,6 +412,8 @@ func main() {
 	http.HandleFunc("/api/employees/advanced-sqlc-joins", server.AdvancedSQLCHandlerJoins)   // Complex join query example
 	http.HandleFunc("/api/employees/advanced-sqlc-dynamic", server.AdvancedSQLCHandlerDynamic)
 	http.HandleFunc("/api/employees/advanced-sqlc-dynamic-paginated", server.AdvancedSQLCHandlerDynamicPaginated)
+
+	http.HandleFunc("/examples", server.ExampleQueriesHandler)
 
 	log.Println("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

@@ -47,6 +47,11 @@ func (r *Registry) Register(model Model) error {
 	defer r.mu.Unlock()
 
 	t := reflect.TypeOf(model)
+	// Check if model is already registered
+	if _, exists := r.models[t]; exists {
+		return fmt.Errorf("model %s already registered", t.Name())
+	}
+
 	metadata := ModelMetadata{
 		TableName: model.TableName(),
 		Fields:    make(map[string]Field),

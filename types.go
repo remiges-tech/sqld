@@ -52,6 +52,31 @@ type PaginationResponse struct {
 	TotalPages int `json:"total_pages"` // Total number of pages
 }
 
+// Operator represents a SQL comparison operator
+type Operator string
+
+const (
+	OpEqual              Operator = "="
+	OpNotEqual           Operator = "!="
+	OpGreaterThan        Operator = ">"
+	OpLessThan           Operator = "<"
+	OpGreaterThanOrEqual Operator = ">="
+	OpLessThanOrEqual    Operator = "<="
+	OpLike              Operator = "LIKE"
+	OpILike             Operator = "ILIKE"
+	OpIn                Operator = "IN"
+	OpNotIn             Operator = "NOT IN"
+	OpIsNull            Operator = "IS NULL"
+	OpIsNotNull         Operator = "IS NOT NULL"
+)
+
+// Condition represents a single WHERE condition with an operator
+type Condition struct {
+	Field    string      `json:"field"`    // Field name (must match JSON field name)
+	Operator Operator    `json:"operator"`  // SQL operator
+	Value    interface{} `json:"value"`     // Value to compare against (optional for IS NULL/IS NOT NULL)
+}
+
 // QueryRequest represents the structure for building dynamic SQL queries.
 // It provides type-safe query building with runtime validation against model metadata.
 type QueryRequest struct {
@@ -60,11 +85,10 @@ type QueryRequest struct {
 	// Each field name is validated against the model's metadata.
 	Select []string `json:"select"`
 
-	// Where specifies filter conditions as key-value pairs. Keys must match JSON field
-	// names from your model, and values are type-checked against model field types.
+	// Where specifies filter conditions using operators. Each condition consists of
+	// a field name (matching JSON field names), an operator, and a value.
 	// Optional - if not provided, no filtering is applied.
-	// Each field name is validated against the model's metadata.
-	Where map[string]interface{} `json:"where"`
+	Where []Condition `json:"where,omitempty"`
 
 	// OrderBy specifies sorting criteria. Each OrderByClause contains a field name
 	// (must match JSON field names) and sort direction.

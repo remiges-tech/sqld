@@ -20,7 +20,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": {\n    \"is_active\": true\n  },\n  \"order_by\": [\n    {\"field\": \"last_name\", \"desc\": false},\n    {\"field\": \"first_name\", \"desc\": false}\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": [\n    {\n      \"field\": \"is_active\",\n      \"operator\": \"=\",\n      \"value\": true\n    }\n  ],\n  \"order_by\": [\n    {\"field\": \"last_name\", \"desc\": false},\n    {\"field\": \"first_name\", \"desc\": false}\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/paginated",
@@ -43,7 +43,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": {\n    \"is_active\": true\n  },\n  \"order_by\": [\n    {\"field\": \"last_name\", \"desc\": false}\n  ],\n  \"pagination\": {\n    \"page\": 2,\n    \"page_size\": 10\n  }\n}"
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"email\", \"department\"],\n  \"where\": [\n    {\n      \"field\": \"is_active\",\n      \"operator\": \"=\",\n      \"value\": true\n    }\n  ],\n  \"order_by\": [\n    {\"field\": \"last_name\", \"desc\": false}\n  ],\n  \"pagination\": {\n    \"page\": 2,\n    \"page_size\": 10\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/paginated",
@@ -66,7 +66,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"salary\", \"position\"],\n  \"where\": {\n    \"department\": \"Engineering\"\n  },\n  \"order_by\": [\n    {\"field\": \"salary\", \"desc\": true}\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 5\n  }\n}"
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"salary\", \"position\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    }\n  ],\n  \"order_by\": [\n    {\"field\": \"salary\", \"desc\": true}\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 5\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/paginated",
@@ -117,7 +117,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"first_name\", \"invalid_field\"],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
+              "raw": "{\n  \"select\": [\"first_name\", \"invalid_field\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"page_size\": 10\n  }\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/paginated",

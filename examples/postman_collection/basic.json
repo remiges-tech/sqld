@@ -43,7 +43,30 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n  \"where\": {\n    \"dept\": \"Engineering\"\n  }\n}"
+              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n  \"where\": [\n    {\n      \"field\": \"dept\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/dynamic",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "dynamic"]
+            }
+          }
+        },
+        {
+          "name": "Employee Query - Multiple Where Conditions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n  \"where\": [\n    {\n      \"field\": \"dept\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    },\n    {\n      \"field\": \"total_balance\",\n      \"operator\": \">\",\n      \"value\": 50000\n    }\n  ]\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/dynamic",
@@ -140,7 +163,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n  \"where\": {\n    \"invalid_field\": \"value\"\n  }\n}"
+              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_count\", \"total_balance\"],\n  \"where\": [\n    {\n      \"field\": \"invalid_field\",\n      \"operator\": \"=\",\n      \"value\": \"value\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/dynamic",
@@ -232,7 +255,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"first_name\", \"department\", \"id\", \"salary\"],\n  \"where\": {\n    \"department\": \"Engineering\"\n  }\n}"
+              "raw": "{\n  \"select\": [\"first_name\", \"department\", \"id\", \"salary\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/dynamic",
@@ -255,7 +278,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_counts\", \"total_balance\"],\n  \"where\": {\n    \"dept\": \"Engineering\"\n  }\n}"
+              "raw": "{\n  \"select\": [\"employee_name\", \"dept\", \"account_counts\", \"total_balance\"],\n  \"where\": [\n    {\n      \"field\": \"dept\",\n      \"operator\": \"=\",\n      \"value\": \"Engineering\"\n    }\n  ]\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/dynamic",
