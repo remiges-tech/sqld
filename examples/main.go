@@ -390,9 +390,6 @@ func main() {
 	if err := sqld.Register[Employee](); err != nil {
 		log.Fatal(err)
 	}
-	if err := sqld.Register[sqlc.Employee](); err != nil {
-		log.Fatal(err)
-	}
 	if err := sqld.Register[Account](); err != nil {
 		log.Fatal(err)
 	}

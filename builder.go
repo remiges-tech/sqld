@@ -54,26 +54,36 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 			return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
 		}
 
+		// Convert value if needed
+		value := cond.Value
+		if converter, ok := defaultRegistry.GetConverter(field.Type); ok {
+			convertedValue, err := converter(value)
+			if err != nil {
+				return squirrel.SelectBuilder{}, fmt.Errorf("failed to convert value for field %s: %w", cond.Field, err)
+			}
+			value = convertedValue
+		}
+
 		switch cond.Operator {
 		case OpEqual:
-			query = query.Where(squirrel.Eq{field.Name: cond.Value})
+			query = query.Where(squirrel.Eq{field.Name: value})
 		case OpNotEqual:
-			query = query.Where(squirrel.NotEq{field.Name: cond.Value})
+			query = query.Where(squirrel.NotEq{field.Name: value})
 		case OpGreaterThan:
-			query = query.Where(squirrel.Gt{field.Name: cond.Value})
+			query = query.Where(squirrel.Gt{field.Name: value})
 		case OpLessThan:
-			query = query.Where(squirrel.Lt{field.Name: cond.Value})
+			query = query.Where(squirrel.Lt{field.Name: value})
 		case OpGreaterThanOrEqual:
-			query = query.Where(squirrel.GtOrEq{field.Name: cond.Value})
+			query = query.Where(squirrel.GtOrEq{field.Name: value})
 		case OpLessThanOrEqual:
-			query = query.Where(squirrel.LtOrEq{field.Name: cond.Value})
+			query = query.Where(squirrel.LtOrEq{field.Name: value})
 		case OpLike, OpILike:
 			op := string(cond.Operator)
-			query = query.Where(squirrel.Expr(field.Name+" "+op+" ?", cond.Value))
+			query = query.Where(squirrel.Expr(field.Name+" "+op+" ?", value))
 		case OpIn:
-			query = query.Where(squirrel.Eq{field.Name: cond.Value})
+			query = query.Where(squirrel.Eq{field.Name: value})
 		case OpNotIn:
-			query = query.Where(squirrel.NotEq{field.Name: cond.Value})
+			query = query.Where(squirrel.NotEq{field.Name: value})
 		case OpIsNull:
 			query = query.Where(squirrel.Eq{field.Name: nil})
 		case OpIsNotNull:

@@ -2,6 +2,7 @@ package sqld
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -57,6 +58,7 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 		// Validate value type matches field type for non-null operators
 		if cond.Value != nil {
 			valueType := reflect.TypeOf(cond.Value)
+			log.Printf("Validating field %s: value type %v, field type %v", cond.Field, valueType, field.Type)
 			
 			// Special case for IN/NOT IN which expect slices
 			if cond.Operator == OpIn || cond.Operator == OpNotIn {
@@ -68,9 +70,17 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 					return fmt.Errorf("invalid type for field %s: expected %v, got %v", 
 						cond.Field, field.Type, valueType.Elem())
 				}
-			} else if valueType != field.Type {
-				return fmt.Errorf("invalid type for field %s: expected %v, got %v",
-					cond.Field, field.Type, valueType)
+			} else {
+				// Check if type matches directly or if we have a converter for it
+				if valueType != field.Type {
+					// Check if we have a converter registered for this type
+					if _, ok := defaultRegistry.GetConverter(field.Type); !ok {
+						log.Printf("No converter found for type %v", field.Type)
+						return fmt.Errorf("invalid type for field %s: expected %v, got %v",
+							cond.Field, field.Type, valueType)
+					}
+					log.Printf("Found converter for type %v", field.Type)
+				}
 			}
 		}
 	}

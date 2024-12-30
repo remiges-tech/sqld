@@ -3,22 +3,27 @@ package sqld
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"reflect"
 	"sync"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // Registry is a type-safe registry for model metadata and scanners
 type Registry struct {
-	models   map[reflect.Type]ModelMetadata
-	scanners map[reflect.Type]func() sql.Scanner
-	mu       sync.RWMutex
+	models     map[reflect.Type]ModelMetadata
+	scanners   map[reflect.Type]func() sql.Scanner
+	converters map[reflect.Type]TypeConverter
+	mu         sync.RWMutex
 }
 
 // NewRegistry returns a new instance of the registry
 func NewRegistry() *Registry {
 	return &Registry{
-		models:   make(map[reflect.Type]ModelMetadata),
-		scanners: make(map[reflect.Type]func() sql.Scanner),
+		models:     make(map[reflect.Type]ModelMetadata),
+		scanners:   make(map[reflect.Type]func() sql.Scanner),
+		converters: make(map[reflect.Type]TypeConverter),
 	}
 }
 
@@ -34,6 +39,11 @@ func Register[T Model]() error {
 // RegisterScanner registers a function that creates scanners for a specific type
 func RegisterScanner(t reflect.Type, scannerFactory func() sql.Scanner) {
 	defaultRegistry.RegisterScanner(t, scannerFactory)
+}
+
+// RegisterConverter registers a function that converts values for a specific type
+func RegisterConverter(t reflect.Type, converter TypeConverter) {
+	defaultRegistry.RegisterConverter(t, converter)
 }
 
 // getModelMetadata retrieves metadata for a model type
@@ -73,10 +83,41 @@ func (r *Registry) Register(model Model) error {
 			return fmt.Errorf("field %q missing required json tag", field.Name)
 		}
 
+		// For SQLC-generated types, we need to handle the field type differently
+		fieldType := field.Type
+		if field.Type.PkgPath() == "github.com/jackc/pgx/v5/pgtype" {
+			// Register a type converter for this type if we don't have one yet
+			if _, ok := r.converters[fieldType]; !ok {
+				log.Printf("Registering auto-converter for type %v", fieldType)
+				r.converters[fieldType] = func(v interface{}) (interface{}, error) {
+					// Handle basic Go types to pgtype conversions
+					switch ft := field.Type.Name(); ft {
+					case "Bool":
+						if b, ok := v.(bool); ok {
+							return &pgtype.Bool{Bool: b, Valid: true}, nil
+						}
+					case "Int8":
+						if i, ok := v.(int64); ok {
+							return &pgtype.Int8{Int64: i, Valid: true}, nil
+						}
+					case "Text":
+						if s, ok := v.(string); ok {
+							return &pgtype.Text{String: s, Valid: true}, nil
+						}
+					case "Numeric":
+						if _, ok := v.(float64); ok {
+							return &pgtype.Numeric{Valid: true}, nil // TODO: proper numeric conversion
+						}
+					}
+					return nil, fmt.Errorf("unsupported conversion to %v: %T", fieldType, v)
+				}
+			}
+		}
+
 		metadata.Fields[jsonName] = Field{
-			Name:     dbName,   // Store DB column name
-			JSONName: jsonName, // Store JSON field name
-			Type:     field.Type,
+			Name:     dbName,    // Store DB column name
+			JSONName: jsonName,  // Store JSON field name
+			Type:     fieldType, // Store the field type
 		}
 	}
 
@@ -89,6 +130,14 @@ func (r *Registry) RegisterScanner(t reflect.Type, scannerFactory func() sql.Sca
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.scanners[t] = scannerFactory
+}
+
+// RegisterConverter registers a function that converts values for a specific type
+func (r *Registry) RegisterConverter(t reflect.Type, converter TypeConverter) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	log.Printf("Registering converter for type %v", t)
+	r.converters[t] = converter
 }
 
 // GetModelMetadata retrieves metadata for a model type
@@ -111,3 +160,14 @@ func (r *Registry) GetScanner(t reflect.Type) (func() sql.Scanner, bool) {
 	factory, ok := r.scanners[t]
 	return factory, ok
 }
+
+// GetConverter returns a converter for the given type, if registered
+func (r *Registry) GetConverter(t reflect.Type) (TypeConverter, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	converter, ok := r.converters[t]
+	return converter, ok
+}
+
+// TypeConverter converts a value from one type to another
+type TypeConverter func(interface{}) (interface{}, error)
