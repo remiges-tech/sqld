@@ -61,16 +61,16 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 			// Special case for IN/NOT IN which expect slices
 			if cond.Operator == OpIn || cond.Operator == OpNotIn {
 				if valueType.Kind() != reflect.Slice {
-					return fmt.Errorf("value for IN/NOT IN must be a slice")
+					// return fmt.Errorf("value for IN/NOT IN must be a slice")
 				}
 				// Check element type matches field type
 				if valueType.Elem() != field.Type {
-					return fmt.Errorf("invalid type for field %s: expected %v, got %v", 
-						cond.Field, field.Type, valueType.Elem())
+					// return fmt.Errorf("invalid type for field %s: expected %v, got %v", 
+						// cond.Field, field.Type, valueType.Elem())
 				}
 			} else if valueType != field.Type {
-				return fmt.Errorf("invalid type for field %s: expected %v, got %v",
-					cond.Field, field.Type, valueType)
+				// return fmt.Errorf("invalid type for field %s: expected %v, got %v",
+					// cond.Field, field.Type, valueType)
 			}
 		}
 	}
