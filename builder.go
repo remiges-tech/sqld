@@ -48,38 +48,40 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 		From(model.TableName())
 
 	// Build WHERE conditions
-	for _, cond := range req.Where {
-		field, ok := metadata.Fields[cond.Field]
-		if !ok {
-			return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
-		}
+	if len(req.Where) > 0 {
+		for _, cond := range req.Where {
+			field, ok := metadata.Fields[cond.Field]
+			if !ok {
+				return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
+			}
 
-		switch cond.Operator {
-		case OpEqual:
-			query = query.Where(squirrel.Eq{field.Name: cond.Value})
-		case OpNotEqual:
-			query = query.Where(squirrel.NotEq{field.Name: cond.Value})
-		case OpGreaterThan:
-			query = query.Where(squirrel.Gt{field.Name: cond.Value})
-		case OpLessThan:
-			query = query.Where(squirrel.Lt{field.Name: cond.Value})
-		case OpGreaterThanOrEqual:
-			query = query.Where(squirrel.GtOrEq{field.Name: cond.Value})
-		case OpLessThanOrEqual:
-			query = query.Where(squirrel.LtOrEq{field.Name: cond.Value})
-		case OpLike, OpILike:
-			op := string(cond.Operator)
-			query = query.Where(squirrel.Expr(field.Name+" "+op+" ?", cond.Value))
-		case OpIn:
-			query = query.Where(squirrel.Eq{field.Name: cond.Value})
-		case OpNotIn:
-			query = query.Where(squirrel.NotEq{field.Name: cond.Value})
-		case OpIsNull:
-			query = query.Where(squirrel.Eq{field.Name: nil})
-		case OpIsNotNull:
-			query = query.Where(squirrel.NotEq{field.Name: nil})
-		default:
-			return squirrel.SelectBuilder{}, fmt.Errorf("unsupported operator: %s", cond.Operator)
+			switch cond.Operator {
+			case OpEqual:
+				query = query.Where(squirrel.Eq{field.Name: cond.Value})
+			case OpNotEqual:
+				query = query.Where(squirrel.NotEq{field.Name: cond.Value})
+			case OpGreaterThan:
+				query = query.Where(squirrel.Gt{field.Name: cond.Value})
+			case OpLessThan:
+				query = query.Where(squirrel.Lt{field.Name: cond.Value})
+			case OpGreaterThanOrEqual:
+				query = query.Where(squirrel.GtOrEq{field.Name: cond.Value})
+			case OpLessThanOrEqual:
+				query = query.Where(squirrel.LtOrEq{field.Name: cond.Value})
+			case OpLike, OpILike:
+				op := string(cond.Operator)
+				query = query.Where(squirrel.Expr(field.Name+" "+op+" ?", cond.Value))
+			case OpIn:
+				query = query.Where(squirrel.Eq{field.Name: cond.Value})
+			case OpNotIn:
+				query = query.Where(squirrel.NotEq{field.Name: cond.Value})
+			case OpIsNull:
+				query = query.Where(squirrel.Eq{field.Name: nil})
+			case OpIsNotNull:
+				query = query.Where(squirrel.NotEq{field.Name: nil})
+			default:
+				return squirrel.SelectBuilder{}, fmt.Errorf("unsupported operator: %s", cond.Operator)
+			}
 		}
 	}
 
