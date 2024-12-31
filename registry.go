@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // Registry is a type-safe registry for model metadata and scanners
@@ -74,14 +77,49 @@ func (r *Registry) Register(model Model) error {
 		}
 
 		metadata.Fields[jsonName] = Field{
-			Name:     dbName,   // Store DB column name
-			JSONName: jsonName, // Store JSON field name
-			Type:     field.Type,
+			Name:           dbName,   // Store DB column name
+			JSONName:       jsonName, // Store JSON field name
+			Type:           field.Type,
+			NormalizedType: normalizeReflectType(field.Type),
 		}
 	}
 
 	r.models[t] = metadata
 	return nil
+}
+
+// normalizeReflectType normalizes a reflect.Type to a simpler form for validation
+func normalizeReflectType(rt reflect.Type) reflect.Type {
+	// Strip pointer layers
+	for rt.Kind() == reflect.Pointer {
+		rt = rt.Elem()
+	}
+
+	// Handle pgtype types
+	switch rt {
+	case reflect.TypeOf(pgtype.Text{}):
+		return reflect.TypeOf("")
+	case reflect.TypeOf(pgtype.Numeric{}):
+		return reflect.TypeOf(float64(0))
+	case reflect.TypeOf(pgtype.Int8{}):
+		return reflect.TypeOf(int64(0))
+	case reflect.TypeOf(pgtype.Int4{}):
+		return reflect.TypeOf(int32(0))
+	case reflect.TypeOf(pgtype.Bool{}):
+		return reflect.TypeOf(bool(false))
+	case reflect.TypeOf(pgtype.Timestamptz{}):
+		return reflect.TypeOf(time.Time{})
+	case reflect.TypeOf(pgtype.Date{}):
+		return reflect.TypeOf(time.Time{})
+	}
+
+	// If underlying kind is string (including custom string-based enums),
+	// treat it as plain string for validation
+	if rt.Kind() == reflect.String {
+		return reflect.TypeOf("")
+	}
+
+	return rt
 }
 
 // RegisterScanner registers a function that creates scanners for a specific type

@@ -24,9 +24,10 @@ type ModelMetadata struct {
 // that come from the user.
 // It is populated when the model is registered with Register().
 type Field struct {
-	Name     string       // Name of the field in the database
-	JSONName string       // Name of the field in the JSON request
-	Type     reflect.Type // Go type
+	Name           string       // Name of the field in the database
+	JSONName       string       // Name of the field in the JSON request
+	Type           reflect.Type // Original Go type
+	NormalizedType reflect.Type // Normalized type for validation
 }
 
 // OrderByClause defines how to sort results

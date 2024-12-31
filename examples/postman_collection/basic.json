@@ -9,6 +9,30 @@
       "name": "Valid Queries",
       "item": [
         {
+          "name": "SQLC Query - IN Operator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"select\": [\"first_name\", \"last_name\", \"department\", \"position\", \"salary\"],\n  \"where\": [\n    {\n      \"field\": \"department\",\n      \"operator\": \"IN\",\n      \"value\": [\"Engineering\", \"Sales\", \"Marketing\"]\n    },\n    {\n      \"field\": \"is_active\",\n      \"operator\": \"=\",\n      \"value\": true\n    }\n  ],\n  \"order_by\": [\n    {\n      \"field\": \"salary\",\n      \"desc\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/sqlc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "sqlc"]
+            },
+            "description": "Query employees using IN operator to filter multiple departments. This example uses the execute method with sqlc.Employee model."
+          }
+        },
+        {
           "name": "Employee Query - Basic Select",
           "request": {
             "method": "POST",
