@@ -72,12 +72,6 @@ func (s *Server) AdvancedQueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register result type if not already registered
-	if err := sqld.Register[EmployeeRow](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	var params AdvancedQueryParams
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)

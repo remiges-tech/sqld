@@ -11,6 +11,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/georgysavva/scany/v2/sqlscan"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	pg_query "github.com/pganalyze/pg_query_go/v6"
 )
 
@@ -388,6 +389,10 @@ func ExecuteRaw[P Model, R Model](
 			return nil, fmt.Errorf("failed to execute query: %w", err)
 		}
 	case *pgx.Conn:
+		if err := pgxscan.Select(ctx, db, &structResults, finalQuery, args...); err != nil {
+			return nil, fmt.Errorf("failed to execute query: %w", err)
+		}
+	case *pgxpool.Pool:
 		if err := pgxscan.Select(ctx, db, &structResults, finalQuery, args...); err != nil {
 			return nil, fmt.Errorf("failed to execute query: %w", err)
 		}
