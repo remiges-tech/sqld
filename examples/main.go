@@ -176,38 +176,6 @@ func (s *Server) PaginatedQueryHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// CustomFilterHandler demonstrates using custom WHERE conditions
-func (s *Server) CustomFilterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req sqld.QueryRequest
-	req.Select = []string{"id", "account_number", "balance", "status"}
-	req.Where = []sqld.Condition{
-		{
-			Field:    "status",
-			Operator: sqld.OpEqual,
-			Value:    "active",
-		},
-		{
-			Field:    "balance",
-			Operator: sqld.OpGreaterThanOrEqual,
-			Value:    1000.00,
-		},
-	}
-
-	resp, err := sqld.Execute[Account](r.Context(), s.db, req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
-}
-
 // SQLCQueryHandler demonstrates integration with SQLC-generated types
 func (s *Server) SQLCQueryHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -399,7 +367,6 @@ func main() {
 	// Basic CRUD endpoints
 	http.HandleFunc("/api/dynamic", server.DynamicQueryHandler)       // Dynamic field selection
 	http.HandleFunc("/api/paginated", server.PaginatedQueryHandler)   // Pagination example
-	http.HandleFunc("/api/custom-filter", server.CustomFilterHandler) // Custom filtering
 	http.HandleFunc("/api/sqlc", server.SQLCQueryHandler)             // SQLC integration
 
 	// Advanced query handlers
