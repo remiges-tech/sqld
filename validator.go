@@ -3,7 +3,6 @@ package sqld
 import (
 	"fmt"
 	"reflect"
-	"time"
 )
 
 type Validator interface {
@@ -20,67 +19,6 @@ func isValidOperator(op Operator) bool {
 		return true
 	}
 	return false
-}
-
-// areTypesCompatible checks if two types are compatible for validation
-func areTypesCompatible(fieldType, valueType reflect.Type) bool {
-	// If they're literally the same, all good
-	if fieldType == valueType {
-		return true
-	}
-
-	// Handle string types
-	if fieldType.Kind() == reflect.String && valueType.Kind() == reflect.String {
-		return true
-	}
-
-	// Handle numeric types
-	if isNumericType(fieldType) && isNumericType(valueType) {
-		return true
-	}
-
-	// Handle time types
-	if isTimeType(fieldType) && isTimeType(valueType) {
-		return true
-	}
-
-	// Handle bool types
-	if fieldType.Kind() == reflect.Bool && valueType.Kind() == reflect.Bool {
-		return true
-	}
-
-	// Handle slices (for IN/NOT IN operators)
-	if valueType.Kind() == reflect.Slice {
-		// Get the element type of the slice
-		elemType := valueType.Elem()
-		
-		// If the element type is interface{}, we need to check the actual values
-		if elemType.Kind() == reflect.Interface {
-			return true // We'll check actual values during validation
-		}
-
-		// Otherwise check if the element type is compatible
-		return areTypesCompatible(fieldType, elemType)
-	}
-
-	return false
-}
-
-// isNumericType checks if a type is numeric (int*, uint*, float*)
-func isNumericType(t reflect.Type) bool {
-	switch t.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64:
-		return true
-	}
-	return false
-}
-
-// isTimeType checks if a type represents time
-func isTimeType(t reflect.Type) bool {
-	return t == reflect.TypeOf(time.Time{}) ||
-		(t.Kind() == reflect.String && (t.Name() == "Time" || t.Name() == "Date"))
 }
 
 func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) error {
@@ -132,7 +70,7 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 					for i := 0; i < sliceValue.Len(); i++ {
 						elemValue := sliceValue.Index(i).Interface()
 						elemType := reflect.TypeOf(elemValue)
-						if !areTypesCompatible(field.NormalizedType, elemType) {
+						if !AreTypesCompatible(field.NormalizedType, elemType) {
 							return fmt.Errorf(
 								"invalid type for field %s at index %d: expected %v, got %v",
 								cond.Field, i, field.NormalizedType, elemType)
@@ -140,12 +78,12 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 					}
 				} else {
 					// For typed slices, check the element type
-					if !areTypesCompatible(field.NormalizedType, valueType.Elem()) {
+					if !AreTypesCompatible(field.NormalizedType, valueType.Elem()) {
 						return fmt.Errorf("invalid type for field %s: expected %v, got %v",
 							cond.Field, field.NormalizedType, valueType.Elem())
 					}
 				}
-			} else if !areTypesCompatible(field.NormalizedType, valueType) {
+			} else if !AreTypesCompatible(field.NormalizedType, valueType) {
 				return fmt.Errorf("invalid type for field %s: expected %v, got %v",
 					cond.Field, field.NormalizedType, valueType)
 			}

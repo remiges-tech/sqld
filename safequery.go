@@ -48,24 +48,6 @@ func BuildMetadataMap[T any]() (map[string]fieldInfo, error) {
 	return metaMap, nil
 }
 
-// isTypeCompatible checks if the runtime type of a value matches the expected type.
-// It returns true if the value's type is compatible with the expected type,
-// and false otherwise. It also handles the case where the expected type is an
-// empty interface, in which case any type is considered compatible.
-func isTypeCompatible(valType, expectedType reflect.Type) bool {
-	if valType == nil || expectedType == nil {
-		return false
-	}
-
-	// If the expected type is an empty interface, accept any type.
-	if expectedType.Kind() == reflect.Interface && expectedType.NumMethod() == 0 {
-		// This means expectedType is `interface{}`
-		return true
-	}
-
-	return valType == expectedType
-}
-
 func typeNameOrNil(t reflect.Type) string {
 	if t == nil {
 		return "nil"
@@ -144,7 +126,7 @@ func ValidateMapParamsAgainstStructNamed[P any](
 		}
 
 		valType := reflect.TypeOf(val)
-		if !isTypeCompatible(valType, expectedType) {
+		if !AreTypesCompatible(valType, expectedType) {
 			return nil, fmt.Errorf("parameter %s type mismatch: got %s, want %s",
 				p, typeNameOrNil(valType), typeNameOrNil(expectedType))
 		}
@@ -355,7 +337,7 @@ func ExecuteRaw[P Model, R Model](
 
 		// Validate type compatibility
 		valueType := reflect.TypeOf(value)
-		if !isTypeCompatible(valueType, field.Type) {
+		if !AreTypesCompatible(valueType, field.Type) {
 			return nil, fmt.Errorf("parameter %s has wrong type: got %v, want %v",
 				paramName, typeNameOrNil(valueType), typeNameOrNil(field.Type))
 		}
