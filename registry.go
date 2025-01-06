@@ -2,6 +2,7 @@ package sqld
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -41,7 +42,37 @@ func RegisterScanner(t reflect.Type, scannerFactory func() sql.Scanner) {
 
 // getModelMetadata retrieves metadata for a model type
 func getModelMetadata(model Model) (ModelMetadata, error) {
-	return defaultRegistry.GetModelMetadata(model)
+	// First attempt to get from registry
+	metadata, err := defaultRegistry.GetModelMetadata(model)
+	if err != nil {
+		// Check if it's a "not registered" error
+		var notRegistered *ErrModelNotRegistered
+		if errors.As(err, &notRegistered) {
+			// Attempt lazy registration with proper locking
+			if regErr := defaultRegistry.Register(model); regErr != nil {
+				return ModelMetadata{}, fmt.Errorf("failed lazy-registering model: %w", regErr)
+			}
+
+			// After registration, try to get metadata again
+			metadata, err = defaultRegistry.GetModelMetadata(model)
+			if err != nil {
+				return ModelMetadata{}, fmt.Errorf("failed to get model metadata after lazy registration: %w", err)
+			}
+			return metadata, nil
+		}
+		// Some other error occurred
+		return ModelMetadata{}, err
+	}
+	return metadata, nil
+}
+
+// ErrModelNotRegistered is returned when a model is not found in the registry
+type ErrModelNotRegistered struct {
+	ModelType reflect.Type
+}
+
+func (e *ErrModelNotRegistered) Error() string {
+	return fmt.Sprintf("model %s not registered", e.ModelType.Name())
 }
 
 // Register adds a model's metadata to the registry
@@ -50,9 +81,9 @@ func (r *Registry) Register(model Model) error {
 	defer r.mu.Unlock()
 
 	t := reflect.TypeOf(model)
-	// Check if model is already registered
+	// If model is already registered, silently succeed
 	if _, exists := r.models[t]; exists {
-		return fmt.Errorf("model %s already registered", t.Name())
+		return nil
 	}
 
 	metadata := ModelMetadata{
@@ -136,9 +167,9 @@ func (r *Registry) GetModelMetadata(model Model) (ModelMetadata, error) {
 	defer r.mu.RUnlock()
 
 	t := reflect.TypeOf(model)
-	metadata, ok := r.models[reflect.TypeOf(model)]
+	metadata, ok := r.models[t]
 	if !ok {
-		return ModelMetadata{}, fmt.Errorf("model %s not registered", t.Name())
+		return ModelMetadata{}, &ErrModelNotRegistered{ModelType: t}
 	}
 	return metadata, nil
 }

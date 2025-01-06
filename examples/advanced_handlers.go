@@ -66,12 +66,6 @@ func (s *Server) AdvancedQueryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register parameter type if not already registered
-	if err := sqld.Register[AdvancedQueryParams](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	var params AdvancedQueryParams
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -122,18 +116,6 @@ func (s *Server) AdvancedQueryHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) AdvancedSQLCHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Register parameter type if not already registered
-	if err := sqld.Register[sqlc.GetEmployeesAdvancedParams](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Register result type if not already registered
-	if err := sqld.Register[sqlc.GetEmployeesAdvancedRow](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -199,18 +181,6 @@ func (s *Server) AdvancedSQLCHandlerSimple(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Register parameter type if not already registered
-	if err := sqld.Register[sqlc.GetEmployeesAdvancedParams](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Register result type if not already registered
-	if err := sqld.Register[sqlc.GetEmployeesAdvancedRow](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	// Use the simple params structure for request parsing
 	var requestParams AdvancedQueryParams
 	if err := json.NewDecoder(r.Body).Decode(&requestParams); err != nil {
@@ -270,18 +240,6 @@ func (s *Server) AdvancedSQLCHandlerSimple(w http.ResponseWriter, r *http.Reques
 func (s *Server) AdvancedSQLCHandlerJoins(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Register parameter type if not already registered
-	if err := sqld.Register[sqlc.GetEmployeesWithAccountsParams](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register parameter type: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Register result type if not already registered
-	if err := sqld.Register[sqlc.GetEmployeesWithAccountsRow](); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to register result type: %v", err), http.StatusInternalServerError)
 		return
 	}
 

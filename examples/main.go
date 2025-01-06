@@ -315,21 +315,10 @@ func (s *Server) ExampleQueriesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func init() {
+	// Keep only the scanner registration as it's still needed
 	sqld.RegisterScanner(reflect.TypeOf((*EmployeeID)(nil)).Elem(), func() sql.Scanner {
 		return &EmployeeIDScanner{}
 	})
-
-	if err := sqld.Register[sqlc.Employee](); err != nil {
-		log.Fatalf("failed to register sqlc.Employee model: %v", err)
-	}
-
-	if err := sqld.Register[EmployeeRow](); err != nil {
-		log.Fatalf("failed to register EmployeeRow model: %v", err)
-	}
-
-	if err := sqld.Register[EmployeeWithAccounts](); err != nil {
-		log.Fatalf("failed to register EmployeeWithAccounts model: %v", err)
-	}
 }
 
 func main() {

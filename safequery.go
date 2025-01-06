@@ -316,7 +316,7 @@ func ExecuteRaw[P Model, R Model](
 
 	// Get metadata from registry for parameter type
 	var param P
-	paramMetadata, err := defaultRegistry.GetModelMetadata(param)
+	paramMetadata, err := getModelMetadata(param)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get parameter metadata: %w", err)
 	}
