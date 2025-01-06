@@ -77,8 +77,9 @@ func (r *Registry) Register(model Model) error {
 		}
 
 		metadata.Fields[jsonName] = Field{
-			Name:           dbName,   // Store DB column name
-			JSONName:       jsonName, // Store JSON field name
+			Name:           dbName,      // Store DB column name
+			JSONName:       jsonName,    // Store JSON field name
+			GoFieldName:    field.Name,  // Store Go field name
 			Type:           field.Type,
 			NormalizedType: normalizeReflectType(field.Type),
 		}

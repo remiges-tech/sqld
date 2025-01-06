@@ -26,6 +26,7 @@ type ModelMetadata struct {
 type Field struct {
 	Name           string       // Name of the field in the database
 	JSONName       string       // Name of the field in the JSON request
+	GoFieldName    string       // Name of the field in the Go struct
 	Type           reflect.Type // Original Go type
 	NormalizedType reflect.Type // Normalized type for validation
 }

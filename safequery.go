@@ -392,11 +392,11 @@ func ExecuteRaw[P Model, R Model](
 
 		// Only include fields that were specified in SelectFields
 		for _, field := range metadata.Fields {
-			fmt.Printf("Field: db=%s json=%s name=%s\n", field.Name, field.JSONName, field.Name)
+			fmt.Printf("Field: db=%s json=%s name=%s gofield=%s\n", field.Name, field.JSONName, field.Name, field.GoFieldName)
 			// If SelectFields is empty, include all fields
 			// Otherwise, only include fields that were requested
 			if len(req.SelectFields) == 0 {
-				fieldVal := val.FieldByName(field.Name)
+				fieldVal := val.FieldByName(field.GoFieldName)
 				fmt.Printf("Field value valid: %v\n", fieldVal.IsValid())
 				if fieldVal.IsValid() {
 					resultMap[field.JSONName] = fieldVal.Interface()
@@ -405,7 +405,7 @@ func ExecuteRaw[P Model, R Model](
 			} else {
 				// Check if the db name or json name is in SelectFields
 				if contains(req.SelectFields, field.Name) || contains(req.SelectFields, field.JSONName) {
-					fieldVal := val.FieldByName(field.Name)
+					fieldVal := val.FieldByName(field.GoFieldName)
 					if fieldVal.IsValid() {
 						resultMap[field.JSONName] = fieldVal.Interface()
 					}
