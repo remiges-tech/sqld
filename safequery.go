@@ -8,11 +8,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/cockroachdb/cockroachdb-parser/pkg/sql/parser"
+	"github.com/cockroachdb/cockroachdb-parser/pkg/sql/sem/tree"
 	"github.com/georgysavva/scany/v2/sqlscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	pg_query "github.com/pganalyze/pg_query_go/v6"
+	"github.com/georgysavva/scany/v2/pgxscan"
 )
 
 type fieldInfo struct {
@@ -184,27 +185,20 @@ func validateQueryParams(query string, paramMap map[string]interface{}) error {
 	return nil
 }
 
-// validateSQLSyntax uses pg_query to validate SQL syntax and structure
+// validateSQLSyntax uses CockroachDB's parser to validate SQL syntax and structure
 func validateSQLSyntax(query string) error {
-	result, err := pg_query.Parse(query)
+	stmt, err := parser.ParseOne(query)
 	if err != nil {
 		return fmt.Errorf("SQL syntax error: %w", err)
 	}
 
-	if len(result.Stmts) == 0 {
-		return fmt.Errorf("empty SQL query")
-	}
-
-	// Get the first statement
-	stmt := result.Stmts[0].Stmt
-
 	// Check if it's a SELECT statement
-	selectStmt := stmt.GetSelectStmt()
-	if selectStmt == nil {
+	switch stmt.AST.(type) {
+	case *tree.Select:
+		return nil
+	default:
 		return fmt.Errorf("only SELECT statements are allowed")
 	}
-
-	return nil
 }
 
 // ExecuteRawRequest contains all parameters needed for ExecuteRaw
