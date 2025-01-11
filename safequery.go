@@ -378,23 +378,18 @@ func ExecuteRaw[P Model, R Model](
 
 	// Convert struct results to maps with only requested fields
 	results := make([]map[string]interface{}, len(structResults))
-	fmt.Printf("Number of results: %d\n", len(structResults))
 	for i, row := range structResults {
 		val := reflect.ValueOf(row)
 		resultMap := make(map[string]interface{})
-		fmt.Printf("Processing row %d\n", i)
 
 		// Only include fields that were specified in SelectFields
 		for _, field := range metadata.Fields {
-			fmt.Printf("Field: db=%s json=%s name=%s gofield=%s\n", field.Name, field.JSONName, field.Name, field.GoFieldName)
 			// If SelectFields is empty, include all fields
 			// Otherwise, only include fields that were requested
 			if len(req.SelectFields) == 0 {
 				fieldVal := val.FieldByName(field.GoFieldName)
-				fmt.Printf("Field value valid: %v\n", fieldVal.IsValid())
 				if fieldVal.IsValid() {
 					resultMap[field.JSONName] = fieldVal.Interface()
-					fmt.Printf("Added value: %v\n", fieldVal.Interface())
 				}
 			} else {
 				// Check if the db name or json name is in SelectFields
@@ -406,7 +401,6 @@ func ExecuteRaw[P Model, R Model](
 				}
 			}
 		}
-		fmt.Printf("Result map: %+v\n", resultMap)
 		results[i] = resultMap
 	}
 
