@@ -221,59 +221,71 @@ var (
 	basicQuery = sqld.QueryRequest{
 		Select: []string{"id", "first_name", "salary"},
 		Where: []sqld.Condition{
-			{
-				Field:    "department",
-				Operator: sqld.OpEqual,
-				Value:    "Engineering",
-			},
-			{
-				Field:    "salary",
-				Operator: sqld.OpGreaterThan,
-				Value:    75000.0,
-			},
+			{Field: "department", Operator: sqld.OpEqual, Value: "Engineering"},
+			{Field: "salary", Operator: sqld.OpGreaterThan, Value: 50000},
 		},
 	}
 
-	// Example 2: Pattern matching and NULL checks
+	// Example 2: Multiple conditions with IN clause
+	complexQuery = sqld.QueryRequest{
+		Select: []string{"id", "first_name", "last_name", "department", "salary"},
+		Where: []sqld.Condition{
+			{Field: "department", Operator: sqld.OpIn, Value: []string{"Engineering", "Marketing"}},
+			{Field: "salary", Operator: sqld.OpGreaterThanOrEqual, Value: 60000},
+		},
+	}
+
+	// Example 3: Pattern matching with LIKE
 	patternQuery = sqld.QueryRequest{
-		Select: []string{"id", "email", "phone"},
+		Select: []string{"id", "first_name", "last_name", "email"},
 		Where: []sqld.Condition{
-			{
-				Field:    "email",
-				Operator: sqld.OpLike,
-				Value:    "%@company.com",
-			},
-			{
-				Field:    "phone",
-				Operator: sqld.OpIsNotNull,
-				Value:    nil,
-			},
+			{Field: "email", Operator: sqld.OpLike, Value: "%@example.com"},
 		},
 	}
 
-	// Example 3: IN clause and range comparison
-	rangeQuery = sqld.QueryRequest{
-		Select: []string{"id", "department", "position"},
+	// Example 4: Partial update example
+	updateExample = sqld.UpdateRequest{
+		Set: map[string]interface{}{
+			"salary": 85000.0,
+			"position": "Senior Software Engineer",
+		},
 		Where: []sqld.Condition{
-			{
-				Field:    "department",
-				Operator: sqld.OpIn,
-				Value:    []string{"Engineering", "Sales", "Marketing"},
-			},
-			{
-				Field:    "salary",
-				Operator: sqld.OpGreaterThanOrEqual,
-				Value:    50000.0,
-			},
-			{
-				Field:    "salary",
-				Operator: sqld.OpLessThanOrEqual,
-				Value:    100000.0,
-			},
+			{Field: "department", Operator: sqld.OpEqual, Value: "Engineering"},
+			{Field: "salary", Operator: sqld.OpLessThan, Value: 80000.0},
 		},
 	}
 )
 
+// UpdateEmployeeHandler demonstrates partial updates with validation
+func (s *Server) UpdateEmployeeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req sqld.UpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	rowsAffected, err := sqld.ExecuteUpdate[Employee](ctx, s.db, req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update employee: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"rows_affected": rowsAffected,
+		"message":       "Update successful",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// ExampleQueriesHandler demonstrates various query examples
 func (s *Server) ExampleQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -293,7 +305,7 @@ func (s *Server) ExampleQueriesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rangeResp, err := sqld.Execute[Employee](r.Context(), s.db, rangeQuery)
+	rangeResp, err := sqld.Execute[Employee](r.Context(), s.db, complexQuery)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Range query error: %v", err), http.StatusInternalServerError)
 		return
@@ -310,6 +322,97 @@ func (s *Server) ExampleQueriesHandler(w http.ResponseWriter, r *http.Request) {
 		RangeQuery:   rangeResp,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// PromotionRequest represents the request for promoting an employee
+type PromotionRequest struct {
+	EmployeeID   int64   `json:"employee_id"`
+	NewPosition  string  `json:"new_position"`
+	SalaryRaise  float64 `json:"salary_raise"`
+	BonusAmount  float64 `json:"bonus_amount"`
+}
+
+// PromoteEmployeeHandler handles employee promotions with account updates in a transaction
+func (s *Server) PromoteEmployeeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Parse request
+	var promReq PromotionRequest
+	if err := json.NewDecoder(r.Body).Decode(&promReq); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Start transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(ctx) // Rollback if not committed
+
+	// 1. Update employee position and salary
+	empUpdate := sqld.UpdateRequest{
+		Set: map[string]interface{}{
+			"position": promReq.NewPosition,
+			"salary":   promReq.SalaryRaise,
+		},
+		Where: []sqld.Condition{
+			{Field: "id", Operator: sqld.OpEqual, Value: promReq.EmployeeID},
+			{Field: "is_active", Operator: sqld.OpEqual, Value: true},
+		},
+	}
+
+	empRows, err := sqld.ExecuteUpdate[Employee](ctx, tx, empUpdate)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update employee: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if empRows == 0 {
+		http.Error(w, "Employee not found or not active", http.StatusNotFound)
+		return
+	}
+
+	// 2. Update account balance with bonus using raw SQL expression
+	accUpdate := sqld.UpdateRequest{
+		Set: map[string]interface{}{
+			"balance": fmt.Sprintf("balance + %f", promReq.BonusAmount), // Using raw SQL expression
+		},
+		Where: []sqld.Condition{
+			{Field: "owner_id", Operator: sqld.OpEqual, Value: promReq.EmployeeID},
+			{Field: "status", Operator: sqld.OpEqual, Value: "active"},
+		},
+	}
+
+	accRows, err := sqld.ExecuteUpdate[Account](ctx, tx, accUpdate)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update account: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if accRows == 0 {
+		http.Error(w, "No active account found for employee", http.StatusNotFound)
+		return
+	}
+
+	// Commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	response := map[string]interface{}{
+		"message":         "Promotion successful",
+		"employee_updated": empRows > 0,
+		"account_updated": accRows > 0,
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -367,6 +470,8 @@ func main() {
 	http.HandleFunc("/api/employees/advanced-sqlc-dynamic-paginated", server.AdvancedSQLCHandlerDynamicPaginated)
 
 	http.HandleFunc("/examples", server.ExampleQueriesHandler)
+	http.HandleFunc("/employees/update", server.UpdateEmployeeHandler)
+	http.HandleFunc("/employees/promote", server.PromoteEmployeeHandler)
 
 	log.Println("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
