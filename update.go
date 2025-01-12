@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"database/sql"
+
+	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // UpdateRequest represents the structure for building dynamic UPDATE queries.
@@ -136,6 +138,13 @@ func ExecuteUpdate[T Model](ctx context.Context, db interface{}, req UpdateReque
 		ct, execErr := dbType.Exec(ctx, sqlStr, args...)
 		if execErr != nil {
 			return 0, fmt.Errorf("failed to execute update: %w", execErr)
+		}
+		return ct.RowsAffected(), nil
+
+	case pgx.Tx:
+		ct, execErr := dbType.Exec(ctx, sqlStr, args...)
+		if execErr != nil {
+			return 0, fmt.Errorf("failed to execute update in tx: %w", execErr)
 		}
 		return ct.RowsAffected(), nil
 

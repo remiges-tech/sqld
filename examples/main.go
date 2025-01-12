@@ -456,22 +456,13 @@ func main() {
 
 	server := NewServer(pool)
 
-	// Basic CRUD endpoints
-	http.HandleFunc("/api/dynamic", server.DynamicQueryHandler)       // Dynamic field selection
-	http.HandleFunc("/api/paginated", server.PaginatedQueryHandler)   // Pagination example
-	http.HandleFunc("/api/sqlc", server.SQLCQueryHandler)             // SQLC integration
-
-	// Advanced query handlers
-	http.HandleFunc("/api/employees/advanced", server.AdvancedQueryHandler)                  // Multiple WHERE clauses example
-	http.HandleFunc("/api/employees/advanced-sqlc", server.AdvancedSQLCHandler)              // Multiple WHERE clauses with SQLC types
-	http.HandleFunc("/api/employees/advanced-sqlc-simple", server.AdvancedSQLCHandlerSimple) // Simple fields example
-	http.HandleFunc("/api/employees/advanced-sqlc-joins", server.AdvancedSQLCHandlerJoins)   // Complex join query example
-	http.HandleFunc("/api/employees/advanced-sqlc-dynamic", server.AdvancedSQLCHandlerDynamic)
-	http.HandleFunc("/api/employees/advanced-sqlc-dynamic-paginated", server.AdvancedSQLCHandlerDynamicPaginated)
-
+	http.HandleFunc("/query", server.DynamicQueryHandler)
+	http.HandleFunc("/paginated", server.PaginatedQueryHandler)
+	http.HandleFunc("/sqlc", server.SQLCQueryHandler)
 	http.HandleFunc("/examples", server.ExampleQueriesHandler)
 	http.HandleFunc("/employees/update", server.UpdateEmployeeHandler)
 	http.HandleFunc("/employees/promote", server.PromoteEmployeeHandler)
+	http.HandleFunc("/employees/transfer", server.TransferEmployeeHandler)
 
 	log.Println("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
