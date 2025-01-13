@@ -36,6 +36,40 @@ func (q *Queries) GetEmployee(ctx context.Context, id int64) (Employee, error) {
 	return i, err
 }
 
+const getEmployeeAccounts = `-- name: GetEmployeeAccounts :many
+SELECT 
+    a.id,
+    a.balance
+FROM accounts a
+WHERE a.owner_id = $1
+AND a.status = 'active'
+`
+
+type GetEmployeeAccountsRow struct {
+	ID      int64          `db:"id" json:"id"`
+	Balance pgtype.Numeric `db:"balance" json:"balance"`
+}
+
+func (q *Queries) GetEmployeeAccounts(ctx context.Context, ownerID pgtype.Int8) ([]GetEmployeeAccountsRow, error) {
+	rows, err := q.db.Query(ctx, getEmployeeAccounts, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEmployeeAccountsRow
+	for rows.Next() {
+		var i GetEmployeeAccountsRow
+		if err := rows.Scan(&i.ID, &i.Balance); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEmployeesAdvanced = `-- name: GetEmployeesAdvanced :many
 SELECT 
     id, 

@@ -3,7 +3,6 @@ package sqld
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"database/sql"
 
@@ -31,6 +30,7 @@ type UpdateRequest struct {
 // - Validates the update fields against the model metadata
 // - Converts JSON field names to actual field names for SET and WHERE clauses
 // - Validates field types match the model's field types
+// - Validates operator compatibility with field types
 func buildUpdateQuery[T Model](req UpdateRequest) (squirrel.UpdateBuilder, error) {
 	var model T
 	metadata, err := getModelMetadata(model)
@@ -38,48 +38,25 @@ func buildUpdateQuery[T Model](req UpdateRequest) (squirrel.UpdateBuilder, error
 		return squirrel.UpdateBuilder{}, fmt.Errorf("failed to get model metadata: %w", err)
 	}
 
+	// Validate the update request
+	validator := BasicValidator{}
+	if err := validator.ValidateUpdateRequest(req, metadata); err != nil {
+		return squirrel.UpdateBuilder{}, fmt.Errorf("validation failed: %w", err)
+	}
+
 	// Start building the query
 	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 	query := builder.Update(model.TableName())
 
 	// Process SET clause
-	if len(req.Set) == 0 {
-		return squirrel.UpdateBuilder{}, fmt.Errorf("update request must include at least one field to update")
-	}
-
 	for jsonName, value := range req.Set {
-		field, ok := metadata.Fields[jsonName]
-		if !ok {
-			return squirrel.UpdateBuilder{}, fmt.Errorf("invalid field in update set: %s", jsonName)
-		}
-
-		// Type validation
-		valueType := reflect.TypeOf(value)
-		if value != nil && !AreTypesCompatible(field.Type, valueType) {
-			return squirrel.UpdateBuilder{}, fmt.Errorf("type mismatch for field %s: expected %v, got %v", jsonName, field.Type, valueType)
-		}
-
+		field := metadata.Fields[jsonName] // Safe to use directly as validation passed
 		query = query.Set(field.Name, value)
 	}
 
 	// Process WHERE conditions
-	if len(req.Where) == 0 {
-		return squirrel.UpdateBuilder{}, fmt.Errorf("update request must include where conditions")
-	}
-
 	for _, cond := range req.Where {
-		field, ok := metadata.Fields[cond.Field]
-		if !ok {
-			return squirrel.UpdateBuilder{}, fmt.Errorf("invalid field in update where: %s", cond.Field)
-		}
-
-		// Type validation for the condition value
-		if cond.Value != nil {
-			valueType := reflect.TypeOf(cond.Value)
-			if !AreTypesCompatible(field.Type, valueType) {
-				return squirrel.UpdateBuilder{}, fmt.Errorf("type mismatch for where condition %s: expected %v, got %v", cond.Field, field.Type, valueType)
-			}
-		}
+		field := metadata.Fields[cond.Field] // Safe to use directly as validation passed
 
 		switch cond.Operator {
 		case OpEqual:

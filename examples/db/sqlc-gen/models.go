@@ -67,6 +67,10 @@ type Account struct {
 	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
+func (Account) TableName() string {
+	return "accounts"
+}
+
 type CommonReferenceMaster struct {
 	ID        int64              `db:"id" json:"id"`
 	Entity    string             `db:"entity" json:"entity"`
@@ -86,9 +90,13 @@ type Employee struct {
 	Department pgtype.Text        `db:"department" json:"department"`
 	Position   pgtype.Text        `db:"position" json:"position"`
 	IsActive   pgtype.Bool        `db:"is_active" json:"is_active"`
-	Status     pgtype.Text        `db:"status" json:"status"`
 	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt  pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status     NullEmployeeStatus `db:"status" json:"status"`
+}
+
+func (Employee) TableName() string {
+	return "employees"
 }
 
 type EmployeeStat struct {
@@ -149,8 +157,4 @@ type Ucc struct {
 	DeletedBy        pgtype.Text        `db:"deleted_by" json:"deleted_by"`
 	CreatedAt        pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-}
-
-func (e Employee) TableName() string {
-	return "employees"
 }

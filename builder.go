@@ -17,6 +17,7 @@ import (
 // - Validates the select fields against the model metadata
 // - Converts JSON field names to actual field names for SELECT
 // - Converts JSON field names to actual field names for WHERE
+// - Validates operator compatibility with field types
 // - Other validations -- TODO
 func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 	var model T
@@ -25,9 +26,10 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 		return squirrel.SelectBuilder{}, fmt.Errorf("failed to get model metadata: %w", err)
 	}
 
-	// Validate select fields
-	if len(req.Select) == 0 {
-		return squirrel.SelectBuilder{}, fmt.Errorf("select fields cannot be empty")
+	// Call the validator before building the query
+	validator := BasicValidator{}
+	if err := validator.ValidateQuery(req, metadata); err != nil {
+		return squirrel.SelectBuilder{}, fmt.Errorf("validation failed: %w", err)
 	}
 
 	// Use Postgres placeholder format ($1, $2, etc)
@@ -36,10 +38,7 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 	// Convert JSON field names to actual field names for SELECT
 	selectFields := make([]string, len(req.Select))
 	for i, jsonName := range req.Select {
-		field, ok := metadata.Fields[jsonName]
-		if !ok {
-			return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in select: %s", jsonName)
-		}
+		field := metadata.Fields[jsonName] // Safe to use directly as validation passed
 		selectFields[i] = field.Name
 	}
 
@@ -50,10 +49,7 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 	// Build WHERE conditions
 	if len(req.Where) > 0 {
 		for _, cond := range req.Where {
-			field, ok := metadata.Fields[cond.Field]
-			if !ok {
-				return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
-			}
+			field := metadata.Fields[cond.Field] // Safe to use directly as validation passed
 
 			switch cond.Operator {
 			case OpEqual:

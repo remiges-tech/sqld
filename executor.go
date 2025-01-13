@@ -71,10 +71,7 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 
 		// Apply the same where conditions if they exist
 		for _, cond := range req.Where {
-			field, ok := metadata.Fields[cond.Field]
-			if !ok {
-				return QueryResponse[T]{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
-			}
+			field := metadata.Fields[cond.Field] // Safe to use directly as validation passed
 
 			switch cond.Operator {
 			case OpEqual:

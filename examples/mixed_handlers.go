@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/remiges-tech/sqld"
 	"github.com/remiges-tech/sqld/examples/db/sqlc-gen"
 )
@@ -56,20 +56,17 @@ func (s *Server) TransferEmployeeHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Convert pgtype.Numeric to float64 for calculation
-	currentSalary, err := strconv.ParseFloat(emp.Salary.Int.String(), 64)
+	salaryValue, err := emp.Salary.Float64Value()
 	if err != nil {
-		http.Error(w, "Failed to parse current salary", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to get current salary value: %v", err), http.StatusInternalServerError)
 		return
 	}
+	currentSalary := salaryValue.Float64
 
-	// Calculate new salary
-	newSalary := currentSalary + req.SalaryAdjustment
-
-	// 2. Update employee using SQLD
-	empUpdate := sqld.UpdateRequest{
+	// 2. Update employee department first using SQLD
+	empDeptUpdate := sqld.UpdateRequest{
 		Set: map[string]interface{}{
 			"department": req.NewDepartment,
-			"salary":    newSalary,
 		},
 		Where: []sqld.Condition{
 			{Field: "id", Operator: sqld.OpEqual, Value: req.EmployeeID},
@@ -77,9 +74,9 @@ func (s *Server) TransferEmployeeHandler(w http.ResponseWriter, r *http.Request)
 		},
 	}
 
-	empRows, err := sqld.ExecuteUpdate[Employee](ctx, tx, empUpdate)
+	empRows, err := sqld.ExecuteUpdate[Employee](ctx, tx, empDeptUpdate)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to update employee: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to update employee department: %v", err), http.StatusInternalServerError)
 		return
 	}
 	if empRows == 0 {
@@ -87,46 +84,67 @@ func (s *Server) TransferEmployeeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// 3. Get employee's accounts using SQLC
-	accounts, err := sqlc.New(tx).GetEmployeesWithAccounts(ctx, sqlc.GetEmployeesWithAccountsParams{
-		Department: emp.Department,
-		MinSalary:  emp.Salary,  // Use the original pgtype.Numeric directly
-		MaxSalary:  emp.Salary,  // Use the original pgtype.Numeric directly
-	})
+	// 3. Update employee salary using SQLD
+	newSalary := currentSalary + req.SalaryAdjustment
+	empSalaryUpdate := sqld.UpdateRequest{
+		Set: map[string]interface{}{
+			"salary": newSalary,
+		},
+		Where: []sqld.Condition{
+			{Field: "id", Operator: sqld.OpEqual, Value: req.EmployeeID},
+			{Field: "is_active", Operator: sqld.OpEqual, Value: true},
+		},
+	}
+
+	empRows, err = sqld.ExecuteUpdate[Employee](ctx, tx, empSalaryUpdate)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to update employee salary: %v", err), http.StatusInternalServerError)
+		return
+	}
+	if empRows == 0 {
+		http.Error(w, "Employee not found or not active", http.StatusNotFound)
+		return
+	}
+
+	// 4. Get employee's accounts using SQLC
+	ownerID := pgtype.Int8{Int64: req.EmployeeID, Valid: true}
+	accounts, err := sqlc.New(tx).GetEmployeeAccounts(ctx, ownerID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get accounts: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// 4. Update account balance with transfer bonus using SQLD
+	// 5. Update account balance with transfer bonus using SQLD
 	if req.TransferBonus > 0 && len(accounts) > 0 {
-		// Get current balance first
-		account := accounts[0]
-		currentBalance, err := strconv.ParseFloat(account.TotalBalance.Int.String(), 64)
-		if err != nil {
-			http.Error(w, "Failed to parse current balance", http.StatusInternalServerError)
-			return
-		}
-		newBalance := currentBalance + req.TransferBonus
+		// Update all active accounts for the employee
+		for _, account := range accounts {
+			balanceValue, err := account.Balance.Float64Value()
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Failed to get current balance value: %v", err), http.StatusInternalServerError)
+				return
+			}
+			currentBalance := balanceValue.Float64
+			newBalance := currentBalance + req.TransferBonus
 
-		accUpdate := sqld.UpdateRequest{
-			Set: map[string]interface{}{
-				"balance": newBalance,
-			},
-			Where: []sqld.Condition{
-				{Field: "owner_id", Operator: sqld.OpEqual, Value: req.EmployeeID},
-				{Field: "status", Operator: sqld.OpEqual, Value: "active"},
-			},
-		}
+			accUpdate := sqld.UpdateRequest{
+				Set: map[string]interface{}{
+					"balance": newBalance,
+				},
+				Where: []sqld.Condition{
+					{Field: "id", Operator: sqld.OpEqual, Value: account.ID},
+					{Field: "status", Operator: sqld.OpEqual, Value: "active"},
+				},
+			}
 
-		accRows, err := sqld.ExecuteUpdate[Account](ctx, tx, accUpdate)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to update account: %v", err), http.StatusInternalServerError)
-			return
-		}
-		if accRows == 0 {
-			// Log warning but don't fail - employee might not have an account
-			log.Printf("Warning: No active account found for employee %d", req.EmployeeID)
+			accRows, err := sqld.ExecuteUpdate[Account](ctx, tx, accUpdate)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Failed to update account: %v", err), http.StatusInternalServerError)
+				return
+			}
+			if accRows == 0 {
+				// Log warning but don't fail - account might have been deactivated
+				log.Printf("Warning: Failed to update account %d for employee %d", account.ID, req.EmployeeID)
+			}
 		}
 	}
 

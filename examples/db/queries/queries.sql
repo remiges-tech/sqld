@@ -140,3 +140,11 @@ AND e.salary >= sqlc.arg('min_salary')
 AND e.salary <= sqlc.arg('max_salary')
 GROUP BY e.first_name, e.department
 ORDER BY total_balance DESC;
+
+-- name: GetEmployeeAccounts :many
+SELECT 
+    a.id,
+    a.balance
+FROM accounts a
+WHERE a.owner_id = $1
+AND a.status = 'active';
