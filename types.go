@@ -70,6 +70,9 @@ const (
 	OpNotIn             Operator = "NOT IN"
 	OpIsNull            Operator = "IS NULL"
 	OpIsNotNull         Operator = "IS NOT NULL"
+
+	// SelectAll is a special value that can be used in QueryRequest.Select to select all fields
+	SelectAll = "ALL"
 )
 
 // Condition represents a single WHERE condition with an operator

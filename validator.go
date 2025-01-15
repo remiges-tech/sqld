@@ -28,7 +28,7 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 	}
 
 	// Handle special "ALL" value
-	if len(req.Select) == 1 && req.Select[0] == "ALL" {
+	if len(req.Select) == 1 && req.Select[0] == SelectAll {
 		return nil
 	}
 

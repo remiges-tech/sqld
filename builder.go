@@ -35,7 +35,7 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 
 	// Handle special "ALL" value in Select
 	var selectFields []string
-	if len(req.Select) == 1 && req.Select[0] == "ALL" {
+	if len(req.Select) == 1 && req.Select[0] == SelectAll {
 		// When "ALL" is specified, include all fields from the model
 		selectFields = make([]string, 0, len(metadata.Fields))
 		for _, field := range metadata.Fields {

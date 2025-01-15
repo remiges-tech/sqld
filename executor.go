@@ -172,7 +172,7 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 		queryResult := make(QueryResult)
 		
 		// Handle "ALL" select case
-		if len(req.Select) == 1 && req.Select[0] == "ALL" {
+		if len(req.Select) == 1 && req.Select[0] == SelectAll {
 			// When "ALL" is specified, map all fields from the metadata
 			for jsonName, fieldMeta := range metadata.Fields {
 				if val, ok := result[fieldMeta.Name]; ok { // Use database column name
