@@ -33,14 +33,24 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 	// Use Postgres placeholder format ($1, $2, etc)
 	builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
-	// Convert JSON field names to actual field names for SELECT
-	selectFields := make([]string, len(req.Select))
-	for i, jsonName := range req.Select {
-		field, ok := metadata.Fields[jsonName]
-		if !ok {
-			return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in select: %s", jsonName)
+	// Handle special "ALL" value in Select
+	var selectFields []string
+	if len(req.Select) == 1 && req.Select[0] == "ALL" {
+		// When "ALL" is specified, include all fields from the model
+		selectFields = make([]string, 0, len(metadata.Fields))
+		for _, field := range metadata.Fields {
+			selectFields = append(selectFields, field.Name)
 		}
-		selectFields[i] = field.Name
+	} else {
+		// Convert JSON field names to actual field names for SELECT
+		selectFields = make([]string, len(req.Select))
+		for i, jsonName := range req.Select {
+			field, ok := metadata.Fields[jsonName]
+			if !ok {
+				return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in select: %s", jsonName)
+			}
+			selectFields[i] = field.Name
+		}
 	}
 
 	// Build query with converted field names

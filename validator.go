@@ -27,6 +27,11 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 		return fmt.Errorf("select fields cannot be empty")
 	}
 
+	// Handle special "ALL" value
+	if len(req.Select) == 1 && req.Select[0] == "ALL" {
+		return nil
+	}
+
 	for _, field := range req.Select {
 		if _, ok := metadata.Fields[field]; !ok {
 			return fmt.Errorf("invalid field in select: %s", field)
