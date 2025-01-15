@@ -42,18 +42,20 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 
 	// Handle pagination if requested
 	var paginationResp *PaginationResponse
-	if req.Pagination != nil {
-		// If req.Pagination is provided, it will override any previously set limit/offset values.
-		// This ensures that page-based pagination always takes precedence over direct limit/offset parameters.
+	if req.Pagination != nil || req.Limit != nil || req.Offset != nil {
+		if req.Pagination != nil {
+			// If req.Pagination is provided, it will override any previously set limit/offset values.
+			// This ensures that page-based pagination always takes precedence over direct limit/offset parameters.
 
-		// Validate and normalize pagination parameters
-		req.Pagination = ValidatePagination(req.Pagination)
+			// Validate and normalize pagination parameters
+			req.Pagination = ValidatePagination(req.Pagination)
 
-		// Set limit and offset based on pagination
-		limit := req.Pagination.PageSize
-		offset := CalculateOffset(req.Pagination.Page, req.Pagination.PageSize)
-		req.Limit = &limit
-		req.Offset = &offset
+			// Set limit and offset based on pagination
+			limit := req.Pagination.PageSize
+			offset := CalculateOffset(req.Pagination.Page, req.Pagination.PageSize)
+			req.Limit = &limit
+			req.Offset = &offset
+		}
 	}
 
 	// Build query using the generic buildQuery
@@ -62,8 +64,8 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 		return QueryResponse[T]{}, fmt.Errorf("failed to build query: %w", err)
 	}
 
-	// If pagination is requested, we need to get total count first
-	if req.Pagination != nil {
+	// If pagination is requested or limit/offset is set, we need to get total count
+	if req.Pagination != nil || req.Limit != nil || req.Offset != nil {
 		// Create a new count query builder with the same conditions
 		// Use Postgres placeholder format ($1, $2, etc)
 		builder := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
@@ -129,7 +131,16 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 			return QueryResponse[T]{}, fmt.Errorf("failed to get total count: %w", err)
 		}
 
-		paginationResp = CalculatePagination(totalItems, req.Pagination.PageSize, req.Pagination.Page)
+		if req.Pagination != nil {
+			paginationResp = CalculatePagination(totalItems, req.Pagination.PageSize, req.Pagination.Page)
+		} else if req.Limit != nil {
+			pageSize := *req.Limit
+			currentPage := 1
+			if req.Offset != nil {
+				currentPage = (*req.Offset / pageSize) + 1
+			}
+			paginationResp = CalculatePagination(totalItems, pageSize, currentPage)
+		}
 	}
 
 	// Get the query and args for the main query
@@ -161,8 +172,8 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 		queryResult := make(QueryResult)
 		for _, field := range req.Select {
 			fieldMeta := metadata.Fields[field]
-			if val, ok := result[fieldMeta.Name]; ok {  // Use database column name
-				queryResult[field] = val  // Use JSON name from request
+			if val, ok := result[fieldMeta.Name]; ok { // Use database column name
+				queryResult[field] = val // Use JSON name from request
 			}
 		}
 		queryResults[i] = queryResult
