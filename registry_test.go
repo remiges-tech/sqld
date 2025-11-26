@@ -57,9 +57,9 @@ func TestRegisterModel(t *testing.T) {
 	err := Register[RegistryTestModel]()
 	assert.NoError(t, err)
 
-	// Test registering the same model again (should fail)
+	// Re-registering the same model succeeds silently (idempotent)
 	err = Register[RegistryTestModel]()
-	assert.Error(t, err)
+	assert.NoError(t, err)
 
 	// Test getting model metadata
 	var model RegistryTestModel
