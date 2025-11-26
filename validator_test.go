@@ -213,6 +213,20 @@ func TestValidateQueryRequest(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "invalid - unknown operator",
+			request: QueryRequest{
+				Select: []string{"name"},
+				Where: []Condition{
+					{
+						Field:    "name",
+						Operator: Operator("UNKNOWN"),
+						Value:    "test",
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
