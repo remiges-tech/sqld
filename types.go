@@ -29,6 +29,12 @@ type Field struct {
 	GoFieldName    string       // Name of the field in the Go struct
 	Type           reflect.Type // Original Go type
 	NormalizedType reflect.Type // Normalized type for validation
+	Array          *ArrayInfo   // Non-nil for array fields
+}
+
+// ArrayInfo contains metadata for array/slice fields.
+type ArrayInfo struct {
+	ElementType reflect.Type
 }
 
 // OrderByClause defines how to sort results
@@ -70,6 +76,8 @@ const (
 	OpNotIn             Operator = "NOT IN"
 	OpIsNull            Operator = "IS NULL"
 	OpIsNotNull         Operator = "IS NOT NULL"
+	// OpAny checks if an array field contains the given value.
+	OpAny               Operator = "= ANY"
 
 	// SelectAll is a special value that can be used in QueryRequest.Select to select all fields
 	SelectAll = "ALL"

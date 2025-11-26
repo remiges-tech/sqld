@@ -102,6 +102,8 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 				countBuilder = countBuilder.Where(squirrel.Eq{field.Name: nil})
 			case OpIsNotNull:
 				countBuilder = countBuilder.Where(squirrel.NotEq{field.Name: nil})
+			case OpAny:
+				countBuilder = countBuilder.Where(squirrel.Expr("? = ANY("+field.Name+")", cond.Value))
 			default:
 				return QueryResponse[T]{}, fmt.Errorf("unsupported operator: %s", cond.Operator)
 			}

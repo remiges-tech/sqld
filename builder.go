@@ -89,6 +89,8 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 				query = query.Where(squirrel.Eq{field.Name: nil})
 			case OpIsNotNull:
 				query = query.Where(squirrel.NotEq{field.Name: nil})
+			case OpAny:
+				query = query.Where(squirrel.Expr("? = ANY("+field.Name+")", cond.Value))
 			default:
 				return squirrel.SelectBuilder{}, fmt.Errorf("unsupported operator: %s", cond.Operator)
 			}

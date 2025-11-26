@@ -107,12 +107,20 @@ func (r *Registry) Register(model Model) error {
 			return fmt.Errorf("field %q missing required json tag", field.Name)
 		}
 
+		var arrayInfo *ArrayInfo
+		if field.Type.Kind() == reflect.Slice {
+			arrayInfo = &ArrayInfo{
+				ElementType: normalizeReflectType(field.Type.Elem()),
+			}
+		}
+
 		metadata.Fields[jsonName] = Field{
 			Name:           dbName,      // Store DB column name
 			JSONName:       jsonName,    // Store JSON field name
 			GoFieldName:    field.Name,  // Store Go field name
 			Type:           field.Type,
 			NormalizedType: normalizeReflectType(field.Type),
+			Array:          arrayInfo,
 		}
 	}
 

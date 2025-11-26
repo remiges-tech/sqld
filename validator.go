@@ -15,7 +15,15 @@ func isValidOperator(op Operator) bool {
 	switch op {
 	case OpEqual, OpNotEqual, OpGreaterThan, OpLessThan,
 		OpGreaterThanOrEqual, OpLessThanOrEqual, OpLike,
-		OpILike, OpIn, OpNotIn, OpIsNull, OpIsNotNull:
+		OpILike, OpIn, OpNotIn, OpIsNull, OpIsNotNull, OpAny:
+		return true
+	}
+	return false
+}
+
+func isArrayOperator(op Operator) bool {
+	switch op {
+	case OpAny:
 		return true
 	}
 	return false
@@ -51,6 +59,18 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 			return fmt.Errorf("unsupported operator: %s", cond.Operator)
 		}
 
+		// Array fields require array operators
+		if field.Array != nil && !isArrayOperator(cond.Operator) {
+			return fmt.Errorf("operator %s cannot be used on array field %s",
+				cond.Operator, cond.Field)
+		}
+
+		// Array operators require array fields
+		if field.Array == nil && isArrayOperator(cond.Operator) {
+			return fmt.Errorf("operator %s requires an array field, but %s is not an array",
+				cond.Operator, cond.Field)
+		}
+
 		// Special validation for null operators
 		if cond.Operator == OpIsNull || cond.Operator == OpIsNotNull {
 			if cond.Value != nil {
@@ -62,6 +82,15 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 		// Validate value type matches field type for non-null operators
 		if cond.Value != nil {
 			valueType := reflect.TypeOf(cond.Value)
+
+			// OpAny: value must match array's element type
+			if cond.Operator == OpAny {
+				if !AreTypesCompatible(field.Array.ElementType, valueType) {
+					return fmt.Errorf("invalid type for field %s: expected %v, got %v",
+						cond.Field, field.Array.ElementType, valueType)
+				}
+				continue
+			}
 
 			// Special case for IN/NOT IN which expect slices
 			if cond.Operator == OpIn || cond.Operator == OpNotIn {
