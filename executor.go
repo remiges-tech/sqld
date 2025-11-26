@@ -78,35 +78,11 @@ func Execute[T Model](ctx context.Context, db interface{}, req QueryRequest) (Qu
 				return QueryResponse[T]{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
 			}
 
-			switch cond.Operator {
-			case OpEqual:
-				countBuilder = countBuilder.Where(squirrel.Eq{field.Name: cond.Value})
-			case OpNotEqual:
-				countBuilder = countBuilder.Where(squirrel.NotEq{field.Name: cond.Value})
-			case OpGreaterThan:
-				countBuilder = countBuilder.Where(squirrel.Gt{field.Name: cond.Value})
-			case OpLessThan:
-				countBuilder = countBuilder.Where(squirrel.Lt{field.Name: cond.Value})
-			case OpGreaterThanOrEqual:
-				countBuilder = countBuilder.Where(squirrel.GtOrEq{field.Name: cond.Value})
-			case OpLessThanOrEqual:
-				countBuilder = countBuilder.Where(squirrel.LtOrEq{field.Name: cond.Value})
-			case OpLike, OpILike:
-				op := string(cond.Operator)
-				countBuilder = countBuilder.Where(squirrel.Expr(field.Name+" "+op+" ?", cond.Value))
-			case OpIn:
-				countBuilder = countBuilder.Where(squirrel.Eq{field.Name: cond.Value})
-			case OpNotIn:
-				countBuilder = countBuilder.Where(squirrel.NotEq{field.Name: cond.Value})
-			case OpIsNull:
-				countBuilder = countBuilder.Where(squirrel.Eq{field.Name: nil})
-			case OpIsNotNull:
-				countBuilder = countBuilder.Where(squirrel.NotEq{field.Name: nil})
-			case OpAny:
-				countBuilder = countBuilder.Where(squirrel.Expr("? = ANY("+field.Name+")", cond.Value))
-			default:
-				return QueryResponse[T]{}, fmt.Errorf("unsupported operator: %s", cond.Operator)
+			whereClause, err := buildWhereClause(field.Name, cond)
+			if err != nil {
+				return QueryResponse[T]{}, err
 			}
+			countBuilder = countBuilder.Where(whereClause)
 		}
 
 		countQuery, countArgs, err := countBuilder.ToSql()

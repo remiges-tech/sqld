@@ -6,6 +6,37 @@ import (
 	"github.com/Masterminds/squirrel"
 )
 
+func buildWhereClause(fieldName string, cond Condition) (squirrel.Sqlizer, error) {
+	switch cond.Operator {
+	case OpEqual:
+		return squirrel.Eq{fieldName: cond.Value}, nil
+	case OpNotEqual:
+		return squirrel.NotEq{fieldName: cond.Value}, nil
+	case OpGreaterThan:
+		return squirrel.Gt{fieldName: cond.Value}, nil
+	case OpLessThan:
+		return squirrel.Lt{fieldName: cond.Value}, nil
+	case OpGreaterThanOrEqual:
+		return squirrel.GtOrEq{fieldName: cond.Value}, nil
+	case OpLessThanOrEqual:
+		return squirrel.LtOrEq{fieldName: cond.Value}, nil
+	case OpLike, OpILike:
+		return squirrel.Expr(fieldName+" "+string(cond.Operator)+" ?", cond.Value), nil
+	case OpIn:
+		return squirrel.Eq{fieldName: cond.Value}, nil
+	case OpNotIn:
+		return squirrel.NotEq{fieldName: cond.Value}, nil
+	case OpIsNull:
+		return squirrel.Eq{fieldName: nil}, nil
+	case OpIsNotNull:
+		return squirrel.NotEq{fieldName: nil}, nil
+	case OpAny:
+		return squirrel.Expr("? = ANY("+fieldName+")", cond.Value), nil
+	default:
+		return nil, fmt.Errorf("unsupported operator: %s", cond.Operator)
+	}
+}
+
 // TODO: Add input validation for maximum number of selected columns
 // TODO: Add SQL injection protection checks for WHERE values
 // TODO: Add validation for LIMIT/OFFSET values
@@ -65,35 +96,11 @@ func buildQuery[T Model](req QueryRequest) (squirrel.SelectBuilder, error) {
 				return squirrel.SelectBuilder{}, fmt.Errorf("invalid field in where clause: %s", cond.Field)
 			}
 
-			switch cond.Operator {
-			case OpEqual:
-				query = query.Where(squirrel.Eq{field.Name: cond.Value})
-			case OpNotEqual:
-				query = query.Where(squirrel.NotEq{field.Name: cond.Value})
-			case OpGreaterThan:
-				query = query.Where(squirrel.Gt{field.Name: cond.Value})
-			case OpLessThan:
-				query = query.Where(squirrel.Lt{field.Name: cond.Value})
-			case OpGreaterThanOrEqual:
-				query = query.Where(squirrel.GtOrEq{field.Name: cond.Value})
-			case OpLessThanOrEqual:
-				query = query.Where(squirrel.LtOrEq{field.Name: cond.Value})
-			case OpLike, OpILike:
-				op := string(cond.Operator)
-				query = query.Where(squirrel.Expr(field.Name+" "+op+" ?", cond.Value))
-			case OpIn:
-				query = query.Where(squirrel.Eq{field.Name: cond.Value})
-			case OpNotIn:
-				query = query.Where(squirrel.NotEq{field.Name: cond.Value})
-			case OpIsNull:
-				query = query.Where(squirrel.Eq{field.Name: nil})
-			case OpIsNotNull:
-				query = query.Where(squirrel.NotEq{field.Name: nil})
-			case OpAny:
-				query = query.Where(squirrel.Expr("? = ANY("+field.Name+")", cond.Value))
-			default:
-				return squirrel.SelectBuilder{}, fmt.Errorf("unsupported operator: %s", cond.Operator)
+			whereClause, err := buildWhereClause(field.Name, cond)
+			if err != nil {
+				return squirrel.SelectBuilder{}, err
 			}
+			query = query.Where(whereClause)
 		}
 	}
 
