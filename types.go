@@ -78,6 +78,8 @@ const (
 	OpIsNotNull         Operator = "IS NOT NULL"
 	// OpAny checks if an array field contains the given value.
 	OpAny               Operator = "= ANY"
+	// OpContains checks if an array field contains all values in the given slice.
+	OpContains          Operator = "@>"
 
 	// SelectAll is a special value that can be used in QueryRequest.Select to select all fields
 	SelectAll = "ALL"

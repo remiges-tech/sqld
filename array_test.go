@@ -81,3 +81,77 @@ func TestBuildQueryWithOpAny(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "SELECT id, name FROM array_test_models WHERE $1 = ANY(reporting_to)", sql)
 }
+
+func TestValidatorAcceptsOpContainsOnArrayField(t *testing.T) {
+	err := Register[ArrayTestModel]()
+	require.NoError(t, err)
+
+	var model ArrayTestModel
+	metadata, err := getModelMetadata(model)
+	require.NoError(t, err)
+
+	validator := BasicValidator{}
+
+	req := QueryRequest{
+		Select: []string{"id", "name"},
+		Where: []Condition{
+			{
+				Field:    "reporting_to",
+				Operator: OpContains,
+				Value:    []int64{20, 30},
+			},
+		},
+	}
+
+	err = validator.ValidateQuery(req, metadata)
+	assert.NoError(t, err)
+}
+
+func TestValidatorRejectsOpContainsWithScalarValue(t *testing.T) {
+	err := Register[ArrayTestModel]()
+	require.NoError(t, err)
+
+	var model ArrayTestModel
+	metadata, err := getModelMetadata(model)
+	require.NoError(t, err)
+
+	validator := BasicValidator{}
+
+	req := QueryRequest{
+		Select: []string{"id", "name"},
+		Where: []Condition{
+			{
+				Field:    "reporting_to",
+				Operator: OpContains,
+				Value:    int64(20),
+			},
+		},
+	}
+
+	err = validator.ValidateQuery(req, metadata)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "slice")
+}
+
+func TestBuildQueryWithOpContains(t *testing.T) {
+	err := Register[ArrayTestModel]()
+	require.NoError(t, err)
+
+	req := QueryRequest{
+		Select: []string{"id", "name"},
+		Where: []Condition{
+			{
+				Field:    "reporting_to",
+				Operator: OpContains,
+				Value:    []int64{20, 30},
+			},
+		},
+	}
+
+	got, err := buildQuery[ArrayTestModel](req)
+	require.NoError(t, err)
+
+	sql, _, err := got.ToSql()
+	require.NoError(t, err)
+	assert.Equal(t, "SELECT id, name FROM array_test_models WHERE reporting_to @> $1", sql)
+}
