@@ -59,8 +59,9 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 			return fmt.Errorf("unsupported operator: %s", cond.Operator)
 		}
 
-		// Array fields require array operators
-		if field.Array != nil && !isArrayOperator(cond.Operator) {
+		// Array fields require array operators (null checks work on any field)
+		if field.Array != nil && !isArrayOperator(cond.Operator) &&
+			cond.Operator != OpIsNull && cond.Operator != OpIsNotNull {
 			return fmt.Errorf("operator %s cannot be used on array field %s",
 				cond.Operator, cond.Field)
 		}

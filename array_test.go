@@ -155,3 +155,39 @@ func TestBuildQueryWithOpContains(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "SELECT id, name FROM array_test_models WHERE reporting_to @> $1", sql)
 }
+
+func TestValidatorAcceptsIsNullOnArrayField(t *testing.T) {
+	err := Register[ArrayTestModel]()
+	require.NoError(t, err)
+
+	var model ArrayTestModel
+	metadata, err := getModelMetadata(model)
+	require.NoError(t, err)
+
+	validator := BasicValidator{}
+
+	tests := []struct {
+		name     string
+		operator Operator
+	}{
+		{"OpIsNull", OpIsNull},
+		{"OpIsNotNull", OpIsNotNull},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := QueryRequest{
+				Select: []string{"id", "name"},
+				Where: []Condition{
+					{
+						Field:    "reporting_to",
+						Operator: tt.operator,
+					},
+				},
+			}
+
+			err = validator.ValidateQuery(req, metadata)
+			assert.NoError(t, err)
+		})
+	}
+}
