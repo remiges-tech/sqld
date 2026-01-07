@@ -80,6 +80,8 @@ const (
 	OpAny               Operator = "= ANY"
 	// OpContains checks if an array field contains all values in the given slice.
 	OpContains          Operator = "@>"
+	// OpOverlap checks if an array field shares any elements with the given slice.
+	OpOverlap           Operator = "&&"
 
 	// SelectAll is a special value that can be used in QueryRequest.Select to select all fields
 	SelectAll = "ALL"

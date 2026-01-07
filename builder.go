@@ -34,6 +34,8 @@ func buildWhereClause(fieldName string, cond Condition) (squirrel.Sqlizer, error
 		return squirrel.Expr("? = ANY("+fieldName+")", cond.Value), nil
 	case OpContains:
 		return squirrel.Expr(fieldName+" @> ?", cond.Value), nil
+	case OpOverlap:
+		return squirrel.Expr(fieldName+" && ?", cond.Value), nil
 	default:
 		return nil, fmt.Errorf("unsupported operator: %s", cond.Operator)
 	}

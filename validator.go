@@ -15,7 +15,7 @@ func isValidOperator(op Operator) bool {
 	switch op {
 	case OpEqual, OpNotEqual, OpGreaterThan, OpLessThan,
 		OpGreaterThanOrEqual, OpLessThanOrEqual, OpLike,
-		OpILike, OpIn, OpNotIn, OpIsNull, OpIsNotNull, OpAny, OpContains:
+		OpILike, OpIn, OpNotIn, OpIsNull, OpIsNotNull, OpAny, OpContains, OpOverlap:
 		return true
 	}
 	return false
@@ -23,7 +23,7 @@ func isValidOperator(op Operator) bool {
 
 func isArrayOperator(op Operator) bool {
 	switch op {
-	case OpAny, OpContains:
+	case OpAny, OpContains, OpOverlap:
 		return true
 	}
 	return false
@@ -97,6 +97,18 @@ func (v BasicValidator) ValidateQuery(req QueryRequest, metadata ModelMetadata) 
 			if cond.Operator == OpContains {
 				if valueType.Kind() != reflect.Slice {
 					return fmt.Errorf("value for OpContains must be a slice")
+				}
+				if !AreTypesCompatible(field.Array.ElementType, valueType.Elem()) {
+					return fmt.Errorf("invalid element type for field %s: expected %v, got %v",
+						cond.Field, field.Array.ElementType, valueType.Elem())
+				}
+				continue
+			}
+
+			// OpOverlap: value must be a slice with elements matching array's element type
+			if cond.Operator == OpOverlap {
+				if valueType.Kind() != reflect.Slice {
+					return fmt.Errorf("value for OpOverlap must be a slice")
 				}
 				if !AreTypesCompatible(field.Array.ElementType, valueType.Elem()) {
 					return fmt.Errorf("invalid element type for field %s: expected %v, got %v",
