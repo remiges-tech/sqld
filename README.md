@@ -3,7 +3,21 @@
 `sqld` is a package that provides type-safe dynamic SQL query building and execution. It offers two distinct subsystems:
 
 1. **Structured Query System**: Type-safe query building using squirrel with model metadata validation
-2. **Safe Raw Query System**: Validation and execution of raw SQL with named parameters and type checking
+2. **Raw Query System**: Execute any SELECT statement with named parameters and type validation
+
+## Design Philosophy
+
+This library was built for a specific use case: **frontend list views with filters**.
+
+A typical frontend displays data in a table with filter controls. Users select filters, the frontend calls a list API, and the backend fetches matching rows. These calls need dynamic field selection, filter conditions, sorting, and pagination.
+
+The **Structured Query System** handles this pattern with built-in pagination and type safety. It assumes:
+
+- **Single table queries** - List views typically show data from one entity. For data spread across tables, create a database view or use the raw query system.
+- **AND conditions only** - UI filters combine with AND. Users expect "department=Engineering AND status=active".
+- **PostgreSQL** - Parameter binding uses `$1, $2` syntax. Array operators use PostgreSQL syntax.
+
+The **Raw Query System** handles everything else - JOINs, GROUP BY, subqueries, window functions. You generate the SQL dynamically using a query builder like squirrel or your own code. sqld validates the SQL using a PostgreSQL parser to catch syntax errors before runtime, and handles parameter binding safely.
 
 ## Key Features
 
